@@ -83,7 +83,7 @@ public final class Constants {
         /**
          * A formula that calculates the pitch for the shooter based on the input velocity and the distance.
          * @param distance - The distance to the SPEAKER in meters.
-         * @param velocity - The input velocity in rot/s. // TODO : Check if actually rot/s
+         * @param velocity - The input velocity in m/s.
          * @return The pitch for the shot in degrees.
          */
         public static final BiFunction<Double, Double, Double> CALCULATE_SHOOTER_PITCH = (Double distance, Double velocity) -> {

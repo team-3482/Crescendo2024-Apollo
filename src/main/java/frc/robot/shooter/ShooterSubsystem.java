@@ -188,4 +188,22 @@ public class ShooterSubsystem extends SubsystemBase {
     public boolean withinTolerance(double velocity) {
         return Math.abs(getVelocity() - velocity) <= ShooterConstants.VELOCITY_TOLERANCE;
     }
+
+    /**
+     * Converts from rot/s to m/s for the shooter rollers.
+     * @param speed - The speed in rot/s.
+     * @return The speed in m/s.
+     */
+    public static double rotationsPerSecondToMetersPerSecond(double speed) {
+        return speed * (2 * Math.PI * ShooterConstants.ROLLER_RADIUS);
+    }
+
+    /**
+     * Converts from m/s to rot/s for the shooter rollers.
+     * @param speed - The speed in m/s.
+     * @return The speed in rot/s.
+     */
+    public static double metersPerSecondToRotationsPerSecond(double speed) {
+        return speed / (2 * Math.PI * ShooterConstants.ROLLER_RADIUS);
+    }
 }

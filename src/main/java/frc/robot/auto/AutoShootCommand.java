@@ -12,7 +12,6 @@ import com.ctre.phoenix6.mechanisms.swerve.SwerveRequest;
 
 import edu.wpi.first.math.geometry.Pose2d;
 import edu.wpi.first.math.geometry.Rotation2d;
-import edu.wpi.first.math.geometry.Translation2d;
 import edu.wpi.first.math.geometry.Translation3d;
 import edu.wpi.first.math.kinematics.ChassisSpeeds;
 import edu.wpi.first.math.util.Units;
@@ -127,14 +126,10 @@ public class AutoShootCommand extends Command {
             ShooterSubsystem.getInstance().getVelocity()
         );
 
-        if (this.idealShotVector.getDistance(actualShotVector) <= 0.1 // TODO : Test tolerance
-            // PivotSubsystem.getInstance().withinTolerance(this.idealShotVector.getPitch())
-            // && ShooterSubsystem.getInstance().withinTolerance(this.idealShotVector.getNormRps())
-            // && Math.min(
-            //     Math.abs(this.idealShotVector.getYaw() - botHeading),
-            //     360 - Math.abs(this.idealShotVector.getYaw() - botHeading)
-            // ) <= ShootingConstants.FACING_ANGLE_TOLERANCE
-        ) {
+        // TODO : Error caused by shooter/pivot
+        // TODO : Yaw error (can be larger due to large SPEAKER opening)
+
+        if (false) {
             IntakeSubsystem.getInstance().motionMagicVelocity(IntakeConstants.IDEAL_INTAKE_VELOCITY);
         }
 
@@ -166,7 +161,9 @@ public class AutoShootCommand extends Command {
             this.speakerTranslation3d.getY() - botPose.getY(),
             this.speakerTranslation3d.getX() - botPose.getX()
         ) + Math.PI);
-        double velocity = ShootingConstants.CALCULATE_SHOOTER_VELOCITY.apply(distance);
+        double velocity = ShooterSubsystem.rotationsPerSecondToMetersPerSecond(
+            ShootingConstants.CALCULATE_SHOOTER_VELOCITY.apply(distance)
+        );
         double pitch = ShootingConstants.CALCULATE_SHOOTER_PITCH.apply(distance, velocity);
 
         return ShotVector.fromYawPitchVelocity(yaw, pitch, velocity);

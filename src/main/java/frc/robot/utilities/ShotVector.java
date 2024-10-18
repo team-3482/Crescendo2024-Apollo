@@ -6,7 +6,7 @@ package frc.robot.utilities;
 
 import edu.wpi.first.math.geometry.Rotation2d;
 import edu.wpi.first.math.util.Units;
-import frc.robot.constants.PhysicalConstants.ShooterConstants;
+import frc.robot.shooter.ShooterSubsystem;
 
 /** A class that represents a shot vector in m/s. */
 public class ShotVector {
@@ -70,7 +70,7 @@ public class ShotVector {
      * @return The norm in rot/s.
      */
     public double getNormRps() {
-        return ShotVector.metersPerSecondToRotationsPerSecond(this.norm);
+        return ShooterSubsystem.metersPerSecondToRotationsPerSecond(this.norm);
     }
 
     /**
@@ -116,37 +116,18 @@ public class ShotVector {
      * Creates a ShotVector from the given values.
      * @param yaw - The yaw of the robot in degrees.
      * @param pitch - The pitch of the pivot in degrees.
-     * @param velocity - The velocity of the shooter in rot/s.
+     * @param velocity - The velocity of the note in m/s.
      * @return The ShotVector.
      */
     public static ShotVector fromYawPitchVelocity(double yaw, double pitch, double velocity) {
         Rotation2d yawRot = Rotation2d.fromDegrees(yaw);
         Rotation2d pitchRot = Rotation2d.fromDegrees(pitch);
-        double velocityMpS = rotationsPerSecondToMetersPerSecond(velocity);
 
         return new ShotVector(
-            velocityMpS * pitchRot.getCos() * yawRot.getSin(),
-            velocityMpS * pitchRot.getCos() * yawRot.getSin(),
-            velocityMpS * pitchRot.getSin()
+            velocity * pitchRot.getCos() * yawRot.getSin(),
+            velocity * pitchRot.getCos() * yawRot.getSin(),
+            velocity * pitchRot.getSin()
         );
-    }
-
-    /**
-     * Converts from rot/s to m/s for the shooter rollers.
-     * @param speed - The speed in rot/s.
-     * @return The speed in m/s.
-     */
-    public static double rotationsPerSecondToMetersPerSecond(double speed) {
-        return speed * (2 * Math.PI * ShooterConstants.ROLLER_RADIUS);
-    }
-
-    /**
-     * Converts from m/s to rot/s for the shooter rollers.
-     * @param speed - The speed in m/s.
-     * @return The speed in rot/s.
-     */
-    public static double metersPerSecondToRotationsPerSecond(double speed) {
-        return speed / (2 * Math.PI * ShooterConstants.ROLLER_RADIUS);
     }
 
     @Override
