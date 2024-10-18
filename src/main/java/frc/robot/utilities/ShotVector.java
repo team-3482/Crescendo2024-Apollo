@@ -100,6 +100,19 @@ public class ShotVector {
     }
 
     /**
+     * Calculates the distance between two ShotVectors.
+     * @param other - The ShotVector to find the distance to.
+     * @return The distance in m/s.
+     */
+    public double getDistance(ShotVector other) {
+        return Math.sqrt(
+            Math.pow(other.x - this.x, 2) +
+            Math.pow(other.y - this.y, 2) +
+            Math.pow(other.z - this.z, 2)
+        );
+    }
+
+    /**
      * Creates a ShotVector from the given values.
      * @param yaw - The yaw of the robot in degrees.
      * @param pitch - The pitch of the pivot in degrees.
