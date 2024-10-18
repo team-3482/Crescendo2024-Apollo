@@ -4,18 +4,22 @@
 
 package frc.robot.auto;
 
+import java.util.function.Supplier;
+
 import com.ctre.phoenix6.mechanisms.swerve.SwerveDrivetrain.SwerveDriveState;
 import com.ctre.phoenix6.mechanisms.swerve.SwerveModule.DriveRequestType;
 import com.ctre.phoenix6.mechanisms.swerve.SwerveRequest;
 
 import edu.wpi.first.math.geometry.Pose2d;
 import edu.wpi.first.math.geometry.Rotation2d;
+import edu.wpi.first.math.geometry.Translation2d;
 import edu.wpi.first.math.geometry.Translation3d;
 import edu.wpi.first.math.kinematics.ChassisSpeeds;
 import edu.wpi.first.math.util.Units;
 import edu.wpi.first.wpilibj.Timer;
 import edu.wpi.first.wpilibj2.command.Command;
 import frc.robot.constants.Positions;
+import frc.robot.constants.Constants.ControllerConstants;
 import frc.robot.constants.Constants.ShootingConstants;
 import frc.robot.constants.PhysicalConstants.IntakeConstants;
 import frc.robot.constants.PhysicalConstants.PivotConstants;
@@ -23,10 +27,18 @@ import frc.robot.intake.IntakeSubsystem;
 import frc.robot.pivot.PivotSubsystem;
 import frc.robot.shooter.ShooterSubsystem;
 import frc.robot.swerve.CommandSwerveDrivetrain;
+import frc.robot.swerve.TunerConstants;
 import frc.robot.utilities.ShotVector;
 
 /** Shoots a Note autonomously. */
 public class AutoShootCommand extends Command {
+    // Driving while shooting
+    private final Supplier<Double> xSupplier;
+    private final Supplier<Double> ySupplier;
+    private final Supplier<Boolean> uncappedSupplier;
+    private final Supplier<Boolean> fineControlSupplier;
+    private final double reasonableMaxSpeed;
+
     private Translation3d speakerTranslation3d;
     private ShotVector shotVector;
     private boolean allowMovement;
@@ -39,30 +51,35 @@ public class AutoShootCommand extends Command {
 
     /**
      * Creates a new AutoShootCommand.
+     * @param xSupplier - Supplier for x robot movement from -1.0 to 1.0.
+     * @param ySupplier - Supplier for y robot movement from -1.0 to 1.0.
+     * @param uncappedSupplier - Supplier for uncapped top speed.
+     * @param fineControlSupplier - Supplier for fine control.
      * @param allowMovement - Whether to require the driving subsystem, which prevents the driver from moving.
      */
-    public AutoShootCommand(boolean allowMovement) {
+    public AutoShootCommand(
+        Supplier<Double> xSupplier, Supplier<Double> ySupplier,
+        Supplier<Boolean> uncappedSupplier, Supplier<Boolean> fineControlSupplier,
+        double reasonableMaxSpeed, boolean allowMovement
+    ) {
         setName("AutoShootCommand");
 
+        this.xSupplier = xSupplier;
+        this.ySupplier = ySupplier;
+        this.uncappedSupplier = uncappedSupplier;
+        this.fineControlSupplier = fineControlSupplier;
+        this.reasonableMaxSpeed = reasonableMaxSpeed;
+        
         this.allowMovement = allowMovement;
         this.shotVector = new ShotVector();
 
         // Use addRequirements() here to declare subsystem dependencies.
-        if (this.allowMovement) {
-            addRequirements(
-                IntakeSubsystem.getInstance(),
-                PivotSubsystem.getInstance(),
-                ShooterSubsystem.getInstance()
-            );
-        }
-        else {
-            addRequirements(
-                IntakeSubsystem.getInstance(),
-                PivotSubsystem.getInstance(),
-                ShooterSubsystem.getInstance(),
-                CommandSwerveDrivetrain.getInstance()
-            );
-        }
+        addRequirements(
+            IntakeSubsystem.getInstance(),
+            PivotSubsystem.getInstance(),
+            ShooterSubsystem.getInstance(),
+            CommandSwerveDrivetrain.getInstance()
+        );
     }
 
     // Called when the command is initially scheduled.
@@ -95,16 +112,9 @@ public class AutoShootCommand extends Command {
         ShotVector botVector = new ShotVector(botSpeeds.vxMetersPerSecond, botSpeeds.vyMetersPerSecond, 0);
         this.shotVector = calculateInitialShotVector().minus(botVector);
 
-        if (this.allowMovement) {
-            // TODO : Yaw while moving.
-        }
-        else {
-            CommandSwerveDrivetrain.getInstance().setControl(fieldCentricFacingAngle_withDeadband
-                .withVelocityX(0)
-                .withVelocityY(0)
-                .withTargetDirection(Rotation2d.fromDegrees(this.shotVector.getYaw()))
-            );
-        }
+        CommandSwerveDrivetrain.getInstance().setControl(
+            getDrivingControl(Rotation2d.fromDegrees(this.shotVector.getYaw()))
+        );
 
         // TODO Check that the angle can even physically make the shot
         
@@ -137,6 +147,10 @@ public class AutoShootCommand extends Command {
         this.timer.stop();
     }
 
+    /**
+     * Helper that finds the ideal ShotVector from the bot's current position.
+     * @return The ShotVector.
+     */
     private ShotVector calculateInitialShotVector() {
         SwerveDriveState botState = CommandSwerveDrivetrain.getInstance().getState();
         Pose2d botPose = botState.Pose;
@@ -150,6 +164,37 @@ public class AutoShootCommand extends Command {
         double pitch = ShootingConstants.CALCULATE_SHOOTER_PITCH.apply(distance, velocity);
 
         return ShotVector.fromYawPitchVelocity(yaw, pitch, velocity);
+    }
+
+    /**
+     * Helper that gets the control for driving while shooting.
+     * @param targetRotation - The direction to face as a Rotation2d.
+     * @return The SwerveRequest.
+     */
+    private SwerveRequest getDrivingControl(Rotation2d targetRotation) {
+        if (!this.allowMovement) {
+            return fieldCentricFacingAngle_withDeadband
+                .withVelocityX(0)
+                .withVelocityY(0)
+                .withTargetDirection(targetRotation);
+        }
+
+        final double MaxSpeed = TunerConstants.kSpeedAt12VoltsMps;
+
+        boolean topSpeed = this.uncappedSupplier.get();
+        boolean fineControl = this.fineControlSupplier.get();
+
+        double velocityX = this.xSupplier.get()
+            * (topSpeed ? MaxSpeed : this.reasonableMaxSpeed)
+            * (fineControl ? ControllerConstants.FINE_CONTROL_MULT : 1);
+        double velocityY = this.ySupplier.get()
+            * (topSpeed ? MaxSpeed : this.reasonableMaxSpeed)
+            * (fineControl ? ControllerConstants.FINE_CONTROL_MULT : 1);
+        
+        return fieldCentricFacingAngle_withDeadband
+            .withVelocityX(velocityX)
+            .withVelocityY(velocityY)
+            .withTargetDirection(targetRotation);
     }
 
     // Returns true when the command should end.

@@ -327,6 +327,15 @@ public class RobotContainer {
                 drivetrain.seedFieldRelative(estimatedPose);
             }
         }));
+
+        // TODO  : Test AutoShootCommand
+        this.driverController.a().whileTrue(new AutoShootCommand(
+            () -> -driverController.getLeftY(),
+            () -> -driverController.getLeftX(),
+            () -> driverController.leftTrigger().getAsBoolean(),
+            () -> driverController.rightTrigger().getAsBoolean(),
+            reasonableMaxSpeed, false
+        ));
         
         drivetrain.registerTelemetry(logger::telemeterize);
 
@@ -406,7 +415,6 @@ public class RobotContainer {
          *                           Does NOT shoot (operator's job).
          */
         this.driverController.x().onTrue(CommandGenerators.AutonIntakeNote());
-        this.driverController.a().whileTrue(new AutoShootCommand(false));
     }
 
     /** Configures the button bindings of the driver controller */
