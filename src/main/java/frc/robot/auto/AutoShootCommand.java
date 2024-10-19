@@ -71,6 +71,7 @@ public class AutoShootCommand extends Command {
         
         this.allowMovement = allowMovement;
         this.idealShotVector = new ShotVector();
+        this.timer = new Timer();
 
         // Use addRequirements() here to declare subsystem dependencies.
         addRequirements(

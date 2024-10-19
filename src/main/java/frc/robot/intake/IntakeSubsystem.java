@@ -94,6 +94,10 @@ public class IntakeSubsystem extends SubsystemBase {
     public void periodic() {
         this.shuffleboardVelocityBar.setDouble(getVelocity());
         this.shuffleboardLaserBoolean.setBoolean(hasNote());
+
+        // TODO ELEC : Fix lasers
+        // System.out.print("back : " + backLaserHasNote());
+        // System.out.println(" ; front : " + frontLaserHasNote());
     }
 
     /**
