@@ -15,6 +15,7 @@ import frc.robot.constants.PhysicalConstants.PivotConstants;
  * (after a 0.5 second delay to allow the pivot to relax).
  */
 public class ResetAtHardstopCommand extends Command {
+    private boolean hasMoved;
     private boolean nearCurrentStop;
     private Timer timer;
     
@@ -36,23 +37,24 @@ public class ResetAtHardstopCommand extends Command {
     // Called when the command is initially scheduled.
     @Override
     public void initialize() {
+        this.hasMoved = false;
         this.timer.restart();
         
-        PivotSubsystem.getInstance().setPivotSpeed(-0.15, false);
+        PivotSubsystem.getInstance().setPivotSpeed(-0.1, false);
     }
 
     // Called every time the scheduler runs while the command is scheduled.
     @Override
     public void execute() {
         // Active MotionMagic might cause it to jerk up for a little bit
-        if (PivotSubsystem.getInstance().getVelocity() != 0) {
-            PivotSubsystem.getInstance().setPivotSpeed(-0.1);
+        if (!this.hasMoved && PivotSubsystem.getInstance().getVelocity() != 0) {
+            this.hasMoved = true;
             this.timer.stop();
             this.timer.reset();
         }
-        else if (PivotSubsystem.getInstance().getVelocity() == 0) {
+        else if (this.hasMoved && PivotSubsystem.getInstance().getVelocity() == 0) {
             PivotSubsystem.getInstance().setPivotSpeed(0);
-            this.timer.restart();
+            this.timer.start();
         }
     }
 
@@ -73,6 +75,6 @@ public class ResetAtHardstopCommand extends Command {
     // Returns true when the command should end.
     @Override
     public boolean isFinished() {
-        return PivotSubsystem.getInstance().getVelocity() == 0 && this.timer.hasElapsed(0.5);
+        return PivotSubsystem.getInstance().getVelocity() == 0 && this.timer.hasElapsed(0.25);
     }
 }

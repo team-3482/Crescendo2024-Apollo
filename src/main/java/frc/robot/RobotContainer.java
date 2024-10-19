@@ -426,8 +426,7 @@ public class RobotContainer {
             () -> operatorController.getLeftTriggerAxis(),
             false
         ));
-        // TODO 1 : Test reset at hard stop. Might need to reset lower limit.
-        operatorController.a().onTrue(new ResetAtHardstopCommand(false));
+        operatorController.a().onTrue(new ResetAtHardstopCommand(false).withTimeout(5));
 
         operatorController.pov(0)
             .whileTrue(PivotSubsystem.getInstance().run(
