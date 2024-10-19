@@ -42,6 +42,30 @@ public class ShotVector {
     }
 
     /**
+     * Gets the X-component of this ShotVector.
+     * @return The component in m/s.
+     */
+    public double getX() {
+        return this.x;
+    }
+
+    /**
+     * Gets the Y-component of this ShotVector.
+     * @return The component in m/s.
+     */
+    public double getY() {
+        return this.y;
+    }
+
+    /**
+     * Gets the Z-component of this ShotVector.
+     * @return The component in m/s.
+     */
+    public double getZ() {
+        return this.z;
+    }
+
+    /**
      * Calculates the yaw of this ShotVector.
      * @return The yaw in degrees.
      */

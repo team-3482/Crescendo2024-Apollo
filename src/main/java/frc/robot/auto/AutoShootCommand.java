@@ -126,10 +126,12 @@ public class AutoShootCommand extends Command {
             ShooterSubsystem.getInstance().getVelocity()
         );
 
+        double heightError = Math.abs(actualShotVector.getZ() - this.idealShotVector.getZ());
+
         // TODO : Error caused by shooter/pivot
         // TODO : Yaw error (can be larger due to large SPEAKER opening)
 
-        if (false) {
+        if (heightError <= 0.1 /* in m/s */) {
             IntakeSubsystem.getInstance().motionMagicVelocity(IntakeConstants.IDEAL_INTAKE_VELOCITY);
         }
 
