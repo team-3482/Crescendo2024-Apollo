@@ -44,17 +44,73 @@ public final class Constants {
     /** Constants used for shooting commands. */
     public static final class ShootingConstants {
         /** The position of the pivot in degrees to shoot into the speaker from right in front of it. */
-        public static final double PIVOT_POSITION_SPEAKER = 50;
-        
-        // TODO : Better tolerance function based on distance.
-        /** How close to the target rotation to be before printing that it is ready to shoot .*/
-        public static final double FACING_ANGLE_TOLERANCE = 2;
+        public static final double PIVOT_POSITION_SPEAKER = 55;
 
-        // Heuristic velocity function // TODO 2 : Find
-        /** [ Minimum position in meters, minimum velocity in rot/s ]. */
-        public static final double[] MIN_POSITION_VELOCITY = new double[]{ 0, 0 };
+        /**
+         * Function that allows 10 cm of yaw error at 1 meter and calculates further
+         * tolerances at larger distances.
+         * @param distance - The distance to the SPEAKER in meters.
+         * @return The yaw tolerance in degrees.
+         */
+        public static final Function<Double, Double> CALCULATE_YAW_TOLERANCE = (Double distance) -> {
+            final double toleranceAt1Meter = 0.1; // 10 cm
+            double tolerance = Math.atan(toleranceAt1Meter / distance);
+            return Units.radiansToDegrees(tolerance);
+        };
+
+        /**
+         * Function that allows 10 cm of pitch error at 1 meter and calculates further
+         * tolerances at larger distances.
+         * @param distance - The distance to the SPEAKER in meters.
+         * @return The pitch tolerance in meters.
+         */
+        public static final Function<Double, Double> CALCULATE_PITCH_TOLERANCE = (Double distance) -> {
+            final double toleranceAt1Meter = 0.05; // 5 cm
+            double tolerance = Math.abs(
+                Math.atan((Positions.SPEAKER_HEIGHT + (toleranceAt1Meter / 2)) / distance)
+                - Math.atan((Positions.SPEAKER_HEIGHT - (toleranceAt1Meter / 2)) / distance)
+            );
+            return Units.radiansToDegrees(tolerance / 2);
+        };
+
+        /**
+         * Function that allows 10 cm of shooter error at 1 meter and calculates further
+         * tolerances at larger distances.
+         * @param distance - The distance to the SPEAKER in meters.
+         * @param pitch - The pitch in degrees.
+         * @return The shooter error in m/s.
+         */
+        public static final BiFunction<Double, Double, Double> CALCULATE_SPEED_TOLERANCE = (Double distance, Double pitch) -> {
+            final double toleranceAt1Meter = 0.05; // 5 cm
+            final double GRAVITY = 9.81;
+            pitch = Units.degreesToRadians(pitch);
+
+            double v1 = Math.sqrt(
+                (GRAVITY * Math.pow(distance, 2)) / (
+                    2 * Math.pow(Math.cos(pitch), 2) * (
+                        distance * Math.tan(pitch) - Positions.SPEAKER_HEIGHT - toleranceAt1Meter
+                    )
+                )
+            );
+
+            double v2 = Math.sqrt(
+                (GRAVITY * Math.pow(distance, 2)) / (
+                    2 * Math.pow(Math.cos(pitch), 2) * (
+                        distance * Math.tan(pitch) - Positions.SPEAKER_HEIGHT + toleranceAt1Meter
+                    )
+                )
+            );
+
+            System.out.printf("max %.2f ; min %.2f ; dist %.2f%n", Math.max(v1, v2), Math.min(v1, v2), Math.max(v1, v2) - Math.min(v1, v2));
+
+            return Math.abs(Math.max(v1, v2) - Math.min(v1, v2));
+        };
+
+        // Heuristic velocity function
+        /** [ Minimum position in meters, minimum velocity in rot/s,  ]. */
+        public static final double[] MIN_POSITION_VELOCITY = new double[]{ 1.5, 125 };
         /** [ Maximum position in meters, maximum velocity in rot/s ]. */
-        public static final double[] MAX_POSITION_VELOCITY = new double[]{ 0, 0 };
+        public static final double[] MAX_POSITION_VELOCITY = new double[]{ 5.5, 230 };
         
         /**
          * A function that linearly interpolates a distance for a velocity between 
@@ -93,12 +149,13 @@ public final class Constants {
                 (
                     Math.pow(velocity, 2)
                     - Math.sqrt(
-                            Math.pow(velocity, 4)
-                            - Math.pow(GRAVITY, 2) * Math.pow(distance, 2)
-                            - 2 * GRAVITY * Math.pow(velocity, 2)
+                            Math.pow(velocity, 4) - GRAVITY * (
+                                GRAVITY * Math.pow(distance, 2)
+                                + 2 * Positions.SPEAKER_HEIGHT * Math.pow(velocity, 2)
+                            )
                     )
                 ) / (GRAVITY * distance)
-            ));
+            )) + 0.055 * Math.exp(distance - 1.5);
         };
     }
 }

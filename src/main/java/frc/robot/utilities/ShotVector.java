@@ -148,7 +148,7 @@ public class ShotVector {
         Rotation2d pitchRot = Rotation2d.fromDegrees(pitch);
 
         return new ShotVector(
-            velocity * pitchRot.getCos() * yawRot.getSin(),
+            velocity * pitchRot.getCos() * yawRot.getCos(),
             velocity * pitchRot.getCos() * yawRot.getSin(),
             velocity * pitchRot.getSin()
         );

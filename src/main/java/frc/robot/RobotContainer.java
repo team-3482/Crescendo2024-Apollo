@@ -34,7 +34,6 @@ import frc.robot.shooter.ShooterSubsystem;
 import frc.robot.swerve.CommandSwerveDrivetrain;
 import frc.robot.swerve.Telemetry;
 import frc.robot.swerve.TunerConstants;
-import frc.robot.constants.Constants.ShootingConstants;
 import frc.robot.constants.Constants.ControllerConstants;
 import frc.robot.constants.Constants.ShuffleboardTabNames;
 import frc.robot.constants.LimelightConstants.DetectionConstants;
@@ -257,7 +256,7 @@ public class RobotContainer {
                 double currentAngle = botPose.getRotation().getDegrees();
 
                 if (Math.min(Math.abs(goalAngle - currentAngle), 360 - Math.abs(goalAngle - currentAngle))
-                        <= ShootingConstants.FACING_ANGLE_TOLERANCE)
+                        <= 2)
                     {
                         System.out.println("FacingSpeaker | Ready to shoot.");
                     }
@@ -334,7 +333,7 @@ public class RobotContainer {
             () -> -driverController.getLeftX(),
             () -> driverController.leftTrigger().getAsBoolean(),
             () -> driverController.rightTrigger().getAsBoolean(),
-            reasonableMaxSpeed, false
+            reasonableMaxSpeed, true
         ));
         
         drivetrain.registerTelemetry(logger::telemeterize);

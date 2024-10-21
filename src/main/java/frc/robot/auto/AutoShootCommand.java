@@ -45,9 +45,6 @@ public class AutoShootCommand extends Command {
     private boolean endEarly;
     private Timer timer;
 
-    final SwerveRequest.FieldCentricFacingAngle fieldCentricFacingAngle_withDeadband = new CommandSwerveDrivetrain.FieldCentricFacingAngle_PID_Workaround()
-            .withDriveRequestType(DriveRequestType.OpenLoopVoltage);
-
     /**
      * Creates a new AutoShootCommand.
      * @param xSupplier - Supplier for x robot movement from -1.0 to 1.0.
@@ -116,23 +113,31 @@ public class AutoShootCommand extends Command {
             getDrivingControl(Rotation2d.fromDegrees(this.idealShotVector.getYaw()))
         );
 
-        // TODO Check that the angle can even physically make the shot
+        // TODO Check that the angle can even physically make the shot (NaN v or theta)
         
         PivotSubsystem.getInstance().motionMagicPosition(this.idealShotVector.getPitch());
         ShooterSubsystem.getInstance().motionMagicVelocity(this.idealShotVector.getNormRps());
 
-        ShotVector actualShotVector = ShotVector.fromYawPitchVelocity(
-            botHeading,
-            PivotSubsystem.getInstance().getPosition(),
-            ShooterSubsystem.getInstance().getVelocity()
+        double distance = botState.Pose.getTranslation().getDistance(this.speakerTranslation3d.toTranslation2d());
+
+        // TODO : Shooter velocity tolerance
+        System.out.printf("Dist : %.2f rps ; Tol : %.2f rps %n",
+            Math.abs(ShooterSubsystem.getInstance().getVelocity() - this.idealShotVector.getNormRps()),
+            ShooterSubsystem.metersPerSecondToRotationsPerSecond(
+                ShootingConstants.CALCULATE_SPEED_TOLERANCE.apply(distance, this.idealShotVector.getPitch())
+            )
         );
 
-        double heightError = Math.abs(actualShotVector.getZ() - this.idealShotVector.getZ());
-
-        // TODO : Error caused by shooter/pivot
-        // TODO : Yaw error (can be larger due to large SPEAKER opening)
-
-        if (heightError <= 0.1 /* in m/s */) {
+        if (
+            Math.min(Math.abs(this.idealShotVector.getYaw() - botHeading), 360 - Math.abs(this.idealShotVector.getYaw() - botHeading))
+                <= ShootingConstants.CALCULATE_YAW_TOLERANCE.apply(distance)
+            && Math.abs(PivotSubsystem.getInstance().getPosition() - this.idealShotVector.getPitch())
+                <= ShootingConstants.CALCULATE_PITCH_TOLERANCE.apply(distance)
+            && Math.abs(ShooterSubsystem.getInstance().getVelocity() - this.idealShotVector.getNormRps())
+                <= ShooterSubsystem.metersPerSecondToRotationsPerSecond(
+                    ShootingConstants.CALCULATE_SPEED_TOLERANCE.apply(distance, this.idealShotVector.getPitch())
+                )
+        ) {
             IntakeSubsystem.getInstance().motionMagicVelocity(IntakeConstants.IDEAL_INTAKE_VELOCITY);
         }
 
@@ -178,6 +183,10 @@ public class AutoShootCommand extends Command {
      * @return The SwerveRequest.
      */
     private SwerveRequest getDrivingControl(Rotation2d targetRotation) {
+        final SwerveRequest.FieldCentricFacingAngle fieldCentricFacingAngle_withDeadband = new CommandSwerveDrivetrain.FieldCentricFacingAngle_PID_Workaround()
+            .withDeadband(this.reasonableMaxSpeed * ControllerConstants.DEADBAND)
+            .withDriveRequestType(DriveRequestType.OpenLoopVoltage);
+
         if (!this.allowMovement) {
             return fieldCentricFacingAngle_withDeadband
                 .withVelocityX(0)
@@ -206,6 +215,6 @@ public class AutoShootCommand extends Command {
     // Returns true when the command should end.
     @Override
     public boolean isFinished() {
-        return this.endEarly || this.timer.hasElapsed(0.25);
+        return this.endEarly;// || this.timer.hasElapsed(0.25);
     }
 }

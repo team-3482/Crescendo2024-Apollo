@@ -56,7 +56,7 @@ public final class CommandGenerators {
         return Commands.deadline(
             CommandGenerators.IntakeCommand(),
             new DriveToNoteCommand()
-        ); // TODO : Timeout of some sort ?
+        ); // TODO : Timeout of some sort based on DriveToNote ending ?
     }
 
     // OPERATOR
@@ -80,7 +80,7 @@ public final class CommandGenerators {
      */
     public static Command ManualIntakeCommand() {
         return IntakeSubsystem.getInstance().runEnd(
-            () -> IntakeSubsystem.getInstance().motionMagicVelocity(IntakeConstants.SLOW_INTAKE_VELOCITY),
+            () -> IntakeSubsystem.getInstance().motionMagicVelocity(IntakeConstants.IDEAL_INTAKE_VELOCITY),
             () -> IntakeSubsystem.getInstance().setSpeed(0)
         );
     }
@@ -92,7 +92,7 @@ public final class CommandGenerators {
     public static Command ManuallyReverseIntakeCommand() {
         return Commands.runEnd(
             () -> {
-                ShooterSubsystem.getInstance().motionMagicVelocity(-5);
+                ShooterSubsystem.getInstance().motionMagicVelocity(-50);
                 IntakeSubsystem.getInstance().motionMagicVelocity(IntakeConstants.IDEAL_EJECT_VELOCITY);
             },
             () -> {
@@ -110,7 +110,7 @@ public final class CommandGenerators {
     public static Command ShootSpeakerUpCloseCommand() {
         return Commands.sequence(
             new PivotCommand(ShootingConstants.PIVOT_POSITION_SPEAKER),
-            new ShootCommand(25) // TODO : Use min velocity graph ?
+            new ShootCommand(ShootingConstants.MIN_POSITION_VELOCITY[1])
         );
     }
 
