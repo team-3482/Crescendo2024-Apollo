@@ -22,6 +22,7 @@ import com.ctre.phoenix6.signals.NeutralModeValue;
 import edu.wpi.first.math.MathUtil;
 import edu.wpi.first.networktables.GenericEntry;
 import edu.wpi.first.wpilibj.DigitalInput;
+import edu.wpi.first.wpilibj.Notifier;
 import edu.wpi.first.wpilibj.shuffleboard.BuiltInLayouts;
 import edu.wpi.first.wpilibj.shuffleboard.BuiltInWidgets;
 import edu.wpi.first.wpilibj.shuffleboard.Shuffleboard;
@@ -51,6 +52,9 @@ public class IntakeSubsystem extends SubsystemBase {
         return instance;
     }
 
+    /** Runs Shuffleboard updates on a separate thread. */
+    private final Notifier notifier;
+
     private TalonFX leftIntakeMotor = new TalonFX(IntakeConstants.LEFT_INTAKE_MOTOR_ID, RobotConstants.CTRE_CAN_BUS);
     private TalonFX rightIntakeMotor = new TalonFX(IntakeConstants.RIGHT_INTAKE_MOTOR_ID, RobotConstants.CTRE_CAN_BUS);
     private MotionMagicVelocityVoltage motionMagicVelocityVoltage = new MotionMagicVelocityVoltage(0);
@@ -65,16 +69,23 @@ public class IntakeSubsystem extends SubsystemBase {
     private GenericEntry shuffleboardVelocityBar = shuffleboardLayout
         .add("Intake Velocity (rps)", 0)
         .withWidget(BuiltInWidgets.kNumberBar)
-        .withProperties(Map.of("Min", 0, "Max", 50, "Num tick marks", 5))
+        .withProperties(Map.of("Min", -IntakeConstants.CRUISE_SPEED - 2, "Max", IntakeConstants.CRUISE_SPEED + 2, "Num tick marks", 5))
         .withSize(2, 2)
-        .withPosition(0, 1)
+        .withPosition(0, 0)
         .getEntry();
-    private GenericEntry shuffleboardLaserBoolean = shuffleboardLayout
-        .add("Note", false)
+    private GenericEntry shuffleboard_FrontLaserBoolean = shuffleboardLayout
+        .add("Front Laser", false)
         .withWidget(BuiltInWidgets.kBooleanBox)
         .withProperties(Map.of("colorWhenFalse", "black", "colorWhenTrue", "#ff7f00"))
-        .withPosition(0, 0)
-        .withSize(2, 2)
+        .withPosition(0, 1)
+        .withSize(2, 1)
+        .getEntry();
+    private GenericEntry shuffleboard_BackLaserBoolean = shuffleboardLayout
+        .add("Back Laser", false)
+        .withWidget(BuiltInWidgets.kBooleanBox)
+        .withProperties(Map.of("colorWhenFalse", "black", "colorWhenTrue", "#ff7f00"))
+        .withPosition(0, 2)
+        .withSize(2, 1)
         .getEntry();
 
     /** Creates a new IntakeSubsystem. */
@@ -87,16 +98,27 @@ public class IntakeSubsystem extends SubsystemBase {
         this.rightIntakeMotor.getVelocity().setUpdateFrequency(50);
 
         this.leftIntakeMotor.setControl(new Follower(IntakeConstants.RIGHT_INTAKE_MOTOR_ID, true));
+
+        this.notifier = new Notifier(() -> notifierLoop());
+        this.notifier.setName("Intake Notifier");
+        // 100 ms cycle, or 5 robot cycles.
+        this.notifier.startPeriodic(0.1);
     }
 
     // This method will be called once per scheduler run
     @Override
     public void periodic() {
-        this.shuffleboardVelocityBar.setDouble(getVelocity());
-        this.shuffleboardLaserBoolean.setBoolean(hasNote());
+        // Uses a Notifier for separate-thread Shuffleboard publishing.
+    }
 
-        // System.out.print("back : " + backLaserHasNote());
-        // System.out.println(" ; front : " + frontLaserHasNote());
+    /**
+     * This method is used in conjunction with a Notifier to publish
+     * Shuffleboard data on a separate thread.
+     */
+    private synchronized void notifierLoop() {
+        this.shuffleboardVelocityBar.setDouble(getVelocity());
+        this.shuffleboard_FrontLaserBoolean.setBoolean(frontLaserHasNote());
+        this.shuffleboard_BackLaserBoolean.setBoolean(backLaserHasNote());
     }
 
     /**
