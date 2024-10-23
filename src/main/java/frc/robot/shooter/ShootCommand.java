@@ -19,18 +19,21 @@ public class ShootCommand extends Command {
     private boolean hitsLimelight;
     
     private Timer timer;
+    private final double timeout;
 
     /**
      * Creates a new ShootCommand.
      * @param velocity - The speed at which the rollers should run in rot/s.
+     * @param timeout - How long after not seeing a Note with the front laser to end the Command.
      * @apiNote This value is clamped by {@link ShooterConstants#CRUISE_SPEED}.
      * Will not shoot if the shooter is below {@link PivotConstants#ABOVE_LIMELIGHT_ANGLE}.
      */
-    public ShootCommand(double velocity) {
+    public ShootCommand(double velocity, double timeout) {
         setName("ShootCommand");
         
         this.velocity = velocity;
         this.timer = new Timer();
+        this.timeout = timeout;
 
         // Use addRequirements() here to declare subsystem dependencies.
         addRequirements(IntakeSubsystem.getInstance(), ShooterSubsystem.getInstance());
@@ -79,6 +82,6 @@ public class ShootCommand extends Command {
     // Returns true when the command should end.
     @Override
     public boolean isFinished() {
-        return this.hitsLimelight || this.timer.hasElapsed(0.25);
+        return this.hitsLimelight || this.timer.hasElapsed(this.timeout);
     }
 }

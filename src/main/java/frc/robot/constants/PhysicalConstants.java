@@ -103,7 +103,7 @@ public final class PhysicalConstants {
         public static final int RIGHT_PIVOT_MOTOR_ID = 41;
 
         /** Upper soft stop angle in degrees. */
-        public static final double UPPER_ANGLE_LIMIT = 90;
+        public static final double UPPER_ANGLE_LIMIT = 100;
         /** Any angle below this would shoot a note into the back Limelight or the protections. */
         public static final double ABOVE_LIMELIGHT_ANGLE = 16;
         /** Lower soft stop angle in degrees. */

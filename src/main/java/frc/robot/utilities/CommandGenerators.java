@@ -110,7 +110,7 @@ public final class CommandGenerators {
     public static Command ShootSpeakerUpCloseCommand() {
         return Commands.sequence(
             new PivotCommand(ShootingConstants.PIVOT_POSITION_SPEAKER),
-            new ShootCommand(ShootingConstants.MIN_POSITION_VELOCITY[1])
+            new ShootCommand(ShootingConstants.MIN_POSITION_VELOCITY[1], 0.3)
         );
     }
 
@@ -121,7 +121,7 @@ public final class CommandGenerators {
     public static Command ShootAmpUpCloseCommand() {
         return Commands.sequence(
             new PivotCommand(ShootingConstants.PIVOT_POSITION_AMP),
-            new ShootCommand(ShootingConstants.SHOOTER_SPEED_AMP)
+            new ShootCommand(ShootingConstants.SHOOTER_SPEED_AMP, 0.5)
         );
     }
 }

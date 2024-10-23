@@ -47,14 +47,14 @@ public final class Constants {
         /** The position of the pivot in degrees to shoot into the speaker from right in front of it. */
         public static final double PIVOT_POSITION_SPEAKER = 55;
         /** The position of the pivot in degrees to shoot into the AMP from right in front of it. */
-        public static final double PIVOT_POSITION_AMP = 95; // TODO 1 : Find this manually
+        public static final double PIVOT_POSITION_AMP = 100;
         /** The speed of the shooter in rot/s to shoot into the AMP from right in front of it. */
-        public static final double SHOOTER_SPEED_AMP = 100; // TODO 1 : Find this manually
+        public static final double SHOOTER_SPEED_AMP = 45;
 
         /** Maximum reasonable accurate distance for AutoShooting in meters. */
-        public static final double MAX_SHOOTING_DISTANCE = 10; // TODO 3 : Find Max Distance
+        public static final double MAX_SHOOTING_DISTANCE = 3.25;
         /** Maximum reasonable speed with which the robot can still shoot in m/s. */
-        public static final double MAX_MOVEMENT_SPEED = 0.9; // TODO 2 : Find Max Speed
+        public static final double MAX_MOVEMENT_SPEED = 0.75;
 
         // Heuristic velocity function
         /** [ Minimum position in meters, minimum velocity in rot/s,  ]. */
