@@ -4,7 +4,7 @@ import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.CommandScheduler;
 import edu.wpi.first.wpilibj2.command.Commands;
 import frc.robot.auto.DriveToNoteCommand;
-import frc.robot.constants.Constants.BehaviorConstants;
+import frc.robot.constants.Constants.ShootingConstants;
 import frc.robot.constants.PhysicalConstants.IntakeConstants;
 import frc.robot.constants.PhysicalConstants.PivotConstants;
 import frc.robot.intake.IntakeSubsystem;
@@ -56,7 +56,7 @@ public final class CommandGenerators {
         return Commands.deadline(
             CommandGenerators.IntakeCommand(),
             new DriveToNoteCommand()
-        ); // TODO : Timeout of some sort ?
+        ); // TODO : Timeout of some sort based on DriveToNote ending ?
     }
 
     // OPERATOR
@@ -80,7 +80,7 @@ public final class CommandGenerators {
      */
     public static Command ManualIntakeCommand() {
         return IntakeSubsystem.getInstance().runEnd(
-            () -> IntakeSubsystem.getInstance().motionMagicVelocity(IntakeConstants.SLOW_INTAKE_VELOCITY),
+            () -> IntakeSubsystem.getInstance().motionMagicVelocity(IntakeConstants.IDEAL_INTAKE_VELOCITY),
             () -> IntakeSubsystem.getInstance().setSpeed(0)
         );
     }
@@ -92,7 +92,7 @@ public final class CommandGenerators {
     public static Command ManuallyReverseIntakeCommand() {
         return Commands.runEnd(
             () -> {
-                ShooterSubsystem.getInstance().motionMagicVelocity(-5);
+                ShooterSubsystem.getInstance().motionMagicVelocity(-ShootingConstants.MIN_POSITION_VELOCITY[1]);
                 IntakeSubsystem.getInstance().motionMagicVelocity(IntakeConstants.IDEAL_EJECT_VELOCITY);
             },
             () -> {
@@ -104,24 +104,13 @@ public final class CommandGenerators {
     }
 
     /**
-     * A command that will pivot and shoot for {@link BehaviorConstants#PIVOT_POSITION_SPEAKER}.
+     * A command that will pivot and shoot for {@link ShootingConstants#PIVOT_POSITION_SPEAKER}.
      * @return The command.
      */
     public static Command ShootSpeakerUpCloseCommand() {
         return Commands.sequence(
-            new PivotCommand(BehaviorConstants.PIVOT_POSITION_SPEAKER),
-            new ShootCommand(25) // TODO : Use min velocity graph ?
-        );
-    }
-
-    /**
-     * A command that calculates the angle to pivot to and shoots.
-     * @return The command.
-     */
-    public static Command AutonShootNoteCommand() {
-        return Commands.sequence(
-            new PivotCommand(10, true, true),
-            new ShootCommand(30)
+            new PivotCommand(ShootingConstants.PIVOT_POSITION_SPEAKER),
+            new ShootCommand(ShootingConstants.MIN_POSITION_VELOCITY[1])
         );
     }
 }

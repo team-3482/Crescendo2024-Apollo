@@ -22,6 +22,7 @@ import com.ctre.phoenix6.signals.NeutralModeValue;
 import edu.wpi.first.math.MathUtil;
 import edu.wpi.first.math.util.Units;
 import edu.wpi.first.networktables.GenericEntry;
+import edu.wpi.first.wpilibj.Notifier;
 import edu.wpi.first.wpilibj.shuffleboard.BuiltInLayouts;
 import edu.wpi.first.wpilibj.shuffleboard.BuiltInWidgets;
 import edu.wpi.first.wpilibj.shuffleboard.Shuffleboard;
@@ -50,6 +51,9 @@ public class PivotSubsystem extends SubsystemBase {
         }
         return instance;
     }
+
+    /** Runs Shuffleboard updates on a separate thread. */
+    private final Notifier notifier;
 
     private TalonFX leftPivotMotor = new TalonFX(PivotConstants.LEFT_PIVOT_MOTOR_ID, RobotConstants.CTRE_CAN_BUS);
     private TalonFX rightPivotMotor = new TalonFX(PivotConstants.RIGHT_PIVOT_MOTOR_ID, RobotConstants.CTRE_CAN_BUS);
@@ -83,13 +87,27 @@ public class PivotSubsystem extends SubsystemBase {
         // 20 ms update frequency (1 robot cycle)
         this.rightPivotMotor.getPosition().setUpdateFrequency(50);
         this.rightPivotMotor.getVelocity().setUpdateFrequency(50);
+
         // Right motor used for all PivotSubsystem control (get/set position)
         this.leftPivotMotor.setControl(new Follower(PivotConstants.RIGHT_PIVOT_MOTOR_ID, true));
+
+        this.notifier = new Notifier(() -> notifierLoop());
+        this.notifier.setName("Pivot Notifier");
+        // 100 ms cycle, or 5 robot cycles.
+        this.notifier.startPeriodic(0.1);
     }
     
     // This method will be called once per scheduler run
     @Override
     public void periodic() {
+        // Uses a Notifier for separate-thread Shuffleboard publishing.
+    }
+
+    /**
+     * This method is used in conjunction with a Notifier to publish
+     * Shuffleboard data on a separate thread.
+     */
+    private synchronized void notifierLoop() {
         double position = getPosition();
         this.shuffleboardPositionDial.setInteger((int) (position + 0.5));
         this.shuffleboardPositionWidget.setString(String.format("%.2f", position));

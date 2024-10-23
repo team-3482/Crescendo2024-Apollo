@@ -126,4 +126,9 @@ public class FilteredTranslation {
             getNextY(translation.getY())
         );
     }
+
+    @Override
+    public String toString() {
+        return String.format("FilteredTranslation(LastX : %.2f, LastY : %.2f)", this.lastX, this.lastY);
+    }
 }

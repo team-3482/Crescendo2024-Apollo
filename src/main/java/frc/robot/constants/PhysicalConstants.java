@@ -24,7 +24,7 @@ public final class PhysicalConstants {
         public static final int LEFT_INTAKE_MOTOR_ID = 20;
         public static final int RIGHT_INTAKE_MOTOR_ID = 21;
         public static final int FRONT_LASER_CHANNEL = 8;
-        public static final int BACK_LASER_CHANNEL = 9;
+        public static final int BACK_LASER_CHANNEL = 7;
 
         /** The velocity with which to intake in rot/s. */
         public static final double IDEAL_INTAKE_VELOCITY = 20;
@@ -67,19 +67,21 @@ public final class PhysicalConstants {
         public static final int BOTTOM_SHOOTER_MOTOR_ID = 30;
 
         /** This is the gear ratio from the sensor to the rollers. */
-        public static final double ROTOR_TO_MECHANISM_RATIO = (double) 25 / 9; // 50:18
+        public static final double ROTOR_TO_MECHANISM_RATIO = (double) 18 / 50; // 50 tooth -> 18 tooth
+
+        /**  The radius of the shooter rollers in meters. */
+        public static final double ROLLER_RADIUS_METERS = Units.inchesToMeters(1.75) / 2;
 
         /** Tolerance for Commands using MotionMagic in rot/s. */
-        public static final double VELOCITY_TOLERANCE = 0.35;
+        public static final double VELOCITY_TOLERANCE = 2;
 
         /** Gains used for MotionMagic slot 0. */
         public static final class ShooterSlot0Gains {
             public static final double kG = 0;
-            public static final double kS_BottomMotor = 0.25;
-            public static final double kS_TopMotor = 0.4;
-            public static final double kV = 0.33;
+            public static final double kS = 0.3;
+            public static final double kV = 0.045;
             public static final double kA = 0;
-            public static final double kP = 1.3;
+            public static final double kP = 0.3;
             public static final double kI = 0;
             public static final double kD = 0;
         }
@@ -90,9 +92,9 @@ public final class PhysicalConstants {
          * This value is not used for MotionMagicVelocity.
          * It is only here as a reminder.
          */
-        public static final double CRUISE_SPEED = 30;
+        public static final double CRUISE_SPEED = 240;
         /** Max mechanism rotations per second^2 */
-        public static final double ACCELERATION = 100;
+        public static final double ACCELERATION = 800;
     }
 
     /** Constants for the PivotSubsystem. */
@@ -102,8 +104,8 @@ public final class PhysicalConstants {
 
         /** Upper soft stop angle in degrees. */
         public static final double UPPER_ANGLE_LIMIT = 90;
-        /** Any angle below this would shoot a note into the back Limelight. */
-        public static final double ABOVE_LIMELIGHT_ANGLE = 6;
+        /** Any angle below this would shoot a note into the back Limelight or the protections. */
+        public static final double ABOVE_LIMELIGHT_ANGLE = 16;
         /** Lower soft stop angle in degrees. */
         public static final double LOWER_HARD_STOP = 2.796678; // Hard stop
 

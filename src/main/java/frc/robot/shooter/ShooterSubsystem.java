@@ -11,6 +11,7 @@ import com.ctre.phoenix6.configs.MotionMagicConfigs;
 import com.ctre.phoenix6.configs.MotorOutputConfigs;
 import com.ctre.phoenix6.configs.Slot0Configs;
 import com.ctre.phoenix6.configs.TalonFXConfiguration;
+import com.ctre.phoenix6.controls.Follower;
 import com.ctre.phoenix6.controls.MotionMagicVelocityVoltage;
 import com.ctre.phoenix6.hardware.TalonFX;
 import com.ctre.phoenix6.signals.FeedbackSensorSourceValue;
@@ -62,14 +63,14 @@ public class ShooterSubsystem extends SubsystemBase {
     private GenericEntry shuffleboardVelocityBar_TopMotor = shuffleboardLayout
         .add("Top Velocity (rps)", 0)
         .withWidget(BuiltInWidgets.kNumberBar)
-        .withProperties(Map.of("Min", 0, "Max", 30, "Num tick marks", 6))
+        .withProperties(Map.of("Min", 0, "Max", ShooterConstants.CRUISE_SPEED + 10, "Num tick marks", 6))
         .withSize(4, 2)
         .withPosition(0, 0)
         .getEntry();
     private GenericEntry shuffleboardVelocityBar_BottomMotor = shuffleboardLayout
         .add("Bottom Velocity (rps)", 0)
         .withWidget(BuiltInWidgets.kNumberBar)
-        .withProperties(Map.of("Min", 0, "Max", 30, "Num tick marks", 6))
+        .withProperties(Map.of("Min", 0, "Max", ShooterConstants.CRUISE_SPEED + 10, "Num tick marks", 6))
         .withSize(4, 2)
         .withPosition(0, 1)
         .getEntry();
@@ -84,7 +85,7 @@ public class ShooterSubsystem extends SubsystemBase {
         this.topShooterMotor.getVelocity().setUpdateFrequency(50);
         this.bottomShooterMotor.getVelocity().setUpdateFrequency(50);
 
-        // this.topShooterMotor.setControl(new Follower(ShooterConstants.BOTTOM_SHOOTER_MOTOR_ID, true));
+        this.topShooterMotor.setControl(new Follower(ShooterConstants.BOTTOM_SHOOTER_MOTOR_ID, true));
     }
     
     // This method will be called once per scheduler run
@@ -115,7 +116,7 @@ public class ShooterSubsystem extends SubsystemBase {
         Slot0Configs slot0Configs = configuration.Slot0;
         slot0Configs.GravityType = GravityTypeValue.Elevator_Static;
         slot0Configs.kG = ShooterSlot0Gains.kG;
-        slot0Configs.kS = ShooterSlot0Gains.kS_BottomMotor;
+        slot0Configs.kS = ShooterSlot0Gains.kS;
         slot0Configs.kV = ShooterSlot0Gains.kV;
         slot0Configs.kA = ShooterSlot0Gains.kA;
         slot0Configs.kP = ShooterSlot0Gains.kP;
@@ -131,8 +132,6 @@ public class ShooterSubsystem extends SubsystemBase {
         motorOutputConfigs.Inverted = InvertedValue.CounterClockwise_Positive;
         this.bottomShooterMotor.getConfigurator().apply(configuration);
 
-        slot0Configs.kS = ShooterSlot0Gains.kS_TopMotor;
-
         motorOutputConfigs.Inverted = InvertedValue.Clockwise_Positive;
         this.topShooterMotor.getConfigurator().apply(configuration);
     }
@@ -146,7 +145,9 @@ public class ShooterSubsystem extends SubsystemBase {
      * <li>Shooting is disabled if the pivot is below the {@link PivotConstants#ABOVE_LIMELIGHT_ANGLE}.
      */
     public boolean motionMagicVelocity(double velocity) {
-        if (PivotSubsystem.getInstance().getPosition() < PivotConstants.ABOVE_LIMELIGHT_ANGLE) {
+        if (PivotSubsystem.getInstance().getPosition() < PivotConstants.ABOVE_LIMELIGHT_ANGLE
+            && velocity > 0
+        ) {
             return false;
         }
 
@@ -157,7 +158,7 @@ public class ShooterSubsystem extends SubsystemBase {
             .withVelocity(velocity);
         
         this.bottomShooterMotor.setControl(control);
-        this.topShooterMotor.setControl(control);
+        // this.topShooterMotor.setControl(control);
 
         return true;
     }
@@ -169,11 +170,11 @@ public class ShooterSubsystem extends SubsystemBase {
     public void setSpeed(double speed) {
         speed = MathUtil.clamp(speed, -1, 1);
         this.bottomShooterMotor.set(speed);
-        this.topShooterMotor.set(speed);
+        // this.topShooterMotor.set(speed);
     }
 
     /**
-     * Gets the mechanism velocity of the bottom motor.
+     * Gets the mechanism velocities of the two motors, averaged.
      * @return The velocity in rot/s.
      */
     public double getVelocity() {
@@ -187,5 +188,23 @@ public class ShooterSubsystem extends SubsystemBase {
      */
     public boolean withinTolerance(double velocity) {
         return Math.abs(getVelocity() - velocity) <= ShooterConstants.VELOCITY_TOLERANCE;
+    }
+
+    /**
+     * Converts from rot/s to m/s for the shooter rollers.
+     * @param speed - The speed in rot/s.
+     * @return The speed in m/s.
+     */
+    public static double rotationsPerSecondToMetersPerSecond(double speed) {
+        return speed * (2 * Math.PI * ShooterConstants.ROLLER_RADIUS_METERS);
+    }
+
+    /**
+     * Converts from m/s to rot/s for the shooter rollers.
+     * @param speed - The speed in m/s.
+     * @return The speed in rot/s.
+     */
+    public static double metersPerSecondToRotationsPerSecond(double speed) {
+        return speed / (2 * Math.PI * ShooterConstants.ROLLER_RADIUS_METERS);
     }
 }

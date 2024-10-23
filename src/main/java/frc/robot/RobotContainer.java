@@ -28,16 +28,18 @@ import frc.robot.intake.IntakeSubsystem;
 import frc.robot.limelights.DetectionSubsystem;
 import frc.robot.limelights.VisionSubsystem;
 import frc.robot.pivot.ManuallyPivotCommand;
+import frc.robot.pivot.PivotCommand;
 import frc.robot.pivot.PivotSubsystem;
 import frc.robot.pivot.ResetAtHardstopCommand;
 import frc.robot.shooter.ShooterSubsystem;
 import frc.robot.swerve.CommandSwerveDrivetrain;
 import frc.robot.swerve.Telemetry;
 import frc.robot.swerve.TunerConstants;
-import frc.robot.constants.Constants.BehaviorConstants;
 import frc.robot.constants.Constants.ControllerConstants;
 import frc.robot.constants.Constants.ShuffleboardTabNames;
 import frc.robot.constants.LimelightConstants.DetectionConstants;
+import frc.robot.constants.PhysicalConstants.PivotConstants;
+import frc.robot.auto.AutoShootCommand;
 import frc.robot.constants.Positions;
 import frc.robot.utilities.CommandGenerators;
 
@@ -256,7 +258,7 @@ public class RobotContainer {
                 double currentAngle = botPose.getRotation().getDegrees();
 
                 if (Math.min(Math.abs(goalAngle - currentAngle), 360 - Math.abs(goalAngle - currentAngle))
-                        <= BehaviorConstants.FACING_ANGLE_TOLERANCE)
+                        <= 2)
                     {
                         System.out.println("FacingSpeaker | Ready to shoot.");
                     }
@@ -326,6 +328,15 @@ public class RobotContainer {
                 drivetrain.seedFieldRelative(estimatedPose);
             }
         }));
+
+        // TODO 1 : Find maxSpeed
+        this.driverController.rightBumper()
+            .whileTrue(new AutoShootCommand(
+                () -> -driverController.getLeftY(),
+                () -> -driverController.getLeftX(),
+                0.9 /* m/s */, true
+            ))
+            .onFalse(new PivotCommand(PivotConstants.ABOVE_LIMELIGHT_ANGLE));
         
         drivetrain.registerTelemetry(logger::telemeterize);
 
@@ -346,7 +357,7 @@ public class RobotContainer {
             .withPosition(0, 0);
         // Re-set chosen position.
         this.layout.add("Set Starting Position",
-            Commands.runOnce(
+            Commands.runOnce( // TODO CODE : Fix Limelight initial position chooser or remove it
                 () -> drivetrain.seedFieldRelative(Positions.getStartingPose(this.positionChooser.getSelected()))
             ).ignoringDisable(true).withName("Set Again"))
             .withWidget(BuiltInWidgets.kCommand)
@@ -401,10 +412,11 @@ public class RobotContainer {
          *                           Enables intake if no note is seen or if
          *                           within 2 meters of the nearest one.
          *                           Freely rotate within 1 meter.
-         *     Right bumper (hold) : Targets SPEAKER to rotate around.
-         *                           Does NOT shoot (operator's job).
+         *     Right bumper (hold) : Auto shooting.
          */
         this.driverController.x().onTrue(CommandGenerators.AutonIntakeNote());
+
+        // TODO BIND : Manual-only intake ? Unmoving Shooting ?
     }
 
     /** Configures the button bindings of the driver controller */
@@ -416,7 +428,7 @@ public class RobotContainer {
             () -> operatorController.getLeftTriggerAxis(),
             false
         ));
-        operatorController.a().onTrue(new ResetAtHardstopCommand(false));
+        operatorController.a().onTrue(new ResetAtHardstopCommand(false).withTimeout(5));
 
         operatorController.pov(0)
             .whileTrue(PivotSubsystem.getInstance().run(
@@ -433,10 +445,6 @@ public class RobotContainer {
         
         operatorController.rightBumper()
             .whileTrue(CommandGenerators.ShootSpeakerUpCloseCommand())
-            .onFalse(CommandGenerators.ResetPivotToIdlePositionCommand());
-        operatorController.leftBumper()
-            // TODO : Account for drop
-            .whileTrue(CommandGenerators.AutonShootNoteCommand())
             .onFalse(CommandGenerators.ResetPivotToIdlePositionCommand());
     }
 

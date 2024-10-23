@@ -62,7 +62,7 @@ public class ShootCommand extends Command {
             IntakeSubsystem.getInstance().motionMagicVelocity(IntakeConstants.IDEAL_INTAKE_VELOCITY);
         }
 
-        if (this.atVelocity && !IntakeSubsystem.getInstance().frontLaserHasNote()) {
+        if (!IntakeSubsystem.getInstance().frontLaserHasNote()) {
             this.timer.start();
         }
     }
