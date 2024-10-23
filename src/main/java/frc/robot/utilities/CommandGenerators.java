@@ -53,10 +53,10 @@ public final class CommandGenerators {
      * @return The command.
      */
     public static Command AutonIntakeNote() {
-        return Commands.deadline(
-            CommandGenerators.IntakeCommand(),
-            new DriveToNoteCommand()
-        ); // TODO : Timeout of some sort based on DriveToNote ending ?
+        return Commands.race(
+            new DriveToNoteCommand().andThen(Commands.waitSeconds(2)),
+            CommandGenerators.IntakeCommand()
+        );
     }
 
     // OPERATOR
@@ -111,6 +111,17 @@ public final class CommandGenerators {
         return Commands.sequence(
             new PivotCommand(ShootingConstants.PIVOT_POSITION_SPEAKER),
             new ShootCommand(ShootingConstants.MIN_POSITION_VELOCITY[1])
+        );
+    }
+
+    /**
+     * A command that will pivot and shoot for {@link ShootingConstants#PIVOT_POSITION_AMP}.
+     * @return The command.
+     */
+    public static Command ShootAmpUpCloseCommand() {
+        return Commands.sequence(
+            new PivotCommand(ShootingConstants.PIVOT_POSITION_AMP),
+            new ShootCommand(ShootingConstants.SHOOTER_SPEED_AMP)
         );
     }
 }

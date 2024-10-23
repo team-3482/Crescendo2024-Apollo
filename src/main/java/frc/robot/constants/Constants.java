@@ -46,7 +46,27 @@ public final class Constants {
     public static final class ShootingConstants {
         /** The position of the pivot in degrees to shoot into the speaker from right in front of it. */
         public static final double PIVOT_POSITION_SPEAKER = 55;
+        /** The position of the pivot in degrees to shoot into the AMP from right in front of it. */
+        public static final double PIVOT_POSITION_AMP = 95; // TODO 1 : Find this manually
+        /** The speed of the shooter in rot/s to shoot into the AMP from right in front of it. */
+        public static final double SHOOTER_SPEED_AMP = 100; // TODO 1 : Find this manually
 
+        /** Maximum reasonable accurate distance for AutoShooting in meters. */
+        public static final double MAX_SHOOTING_DISTANCE = 10; // TODO 3 : Find Max Distance
+        /** Maximum reasonable speed with which the robot can still shoot in m/s. */
+        public static final double MAX_MOVEMENT_SPEED = 0.9; // TODO 2 : Find Max Speed
+
+        // Heuristic velocity function
+        /** [ Minimum position in meters, minimum velocity in rot/s,  ]. */
+        public static final double[] MIN_POSITION_VELOCITY = new double[]{ 1.5, 125 };
+        /** [ Maximum position in meters, maximum velocity in rot/s ]. */
+        public static final double[] MAX_POSITION_VELOCITY = new double[]{ 5.5, ShooterConstants.CRUISE_SPEED };
+    }
+
+    /**
+     * Functions used for AutoShooting math.
+     */
+    public static final class ShootingFunctions {
         /**
          * Function that allows 10 cm of yaw error at 1 meter and calculates further
          * tolerances at larger distances.
@@ -104,12 +124,6 @@ public final class Constants {
 
             return Math.abs(Math.max(v1, v2) - Math.min(v1, v2));
         };
-
-        // Heuristic velocity function
-        /** [ Minimum position in meters, minimum velocity in rot/s,  ]. */
-        public static final double[] MIN_POSITION_VELOCITY = new double[]{ 1.5, 125 };
-        /** [ Maximum position in meters, maximum velocity in rot/s ]. */
-        public static final double[] MAX_POSITION_VELOCITY = new double[]{ 5.5, ShooterConstants.CRUISE_SPEED };
         
         /**
          * A function that linearly interpolates a distance for a velocity between 
@@ -119,10 +133,10 @@ public final class Constants {
          * @return The velocity in rot/s.
          */
         public static final Function<Double, Double> CALCULATE_SHOOTER_VELOCITY = (Double distance) -> {
-            final double minD = MIN_POSITION_VELOCITY[0];
-            final double minV = MIN_POSITION_VELOCITY[1];
-            final double maxD = MAX_POSITION_VELOCITY[0];
-            final double maxV = MAX_POSITION_VELOCITY[1];
+            final double minD = ShootingConstants.MIN_POSITION_VELOCITY[0];
+            final double minV = ShootingConstants.MIN_POSITION_VELOCITY[1];
+            final double maxD = ShootingConstants.MAX_POSITION_VELOCITY[0];
+            final double maxV = ShootingConstants.MAX_POSITION_VELOCITY[1];
 
             if (distance <= minD) {
                 return minV;

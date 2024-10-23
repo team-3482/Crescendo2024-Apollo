@@ -36,6 +36,7 @@ import frc.robot.swerve.CommandSwerveDrivetrain;
 import frc.robot.swerve.Telemetry;
 import frc.robot.swerve.TunerConstants;
 import frc.robot.constants.Constants.ControllerConstants;
+import frc.robot.constants.Constants.ShootingConstants;
 import frc.robot.constants.Constants.ShuffleboardTabNames;
 import frc.robot.constants.LimelightConstants.DetectionConstants;
 import frc.robot.constants.PhysicalConstants.PivotConstants;
@@ -329,12 +330,21 @@ public class RobotContainer {
             }
         }));
 
-        // TODO 1 : Find maxSpeed
         this.driverController.rightBumper()
             .whileTrue(new AutoShootCommand(
                 () -> -driverController.getLeftY(),
                 () -> -driverController.getLeftX(),
-                0.9 /* m/s */, true
+                ShootingConstants.MAX_MOVEMENT_SPEED,
+                true
+            ))
+            .onFalse(new PivotCommand(PivotConstants.ABOVE_LIMELIGHT_ANGLE));
+        
+        this.driverController.y()
+            .whileTrue(new AutoShootCommand(
+                () -> -driverController.getLeftY(),
+                () -> -driverController.getLeftX(),
+                ShootingConstants.MAX_MOVEMENT_SPEED,
+                false
             ))
             .onFalse(new PivotCommand(PivotConstants.ABOVE_LIMELIGHT_ANGLE));
         
@@ -343,7 +353,7 @@ public class RobotContainer {
         // Position chooser
         for (PositionInitialization position : PositionInitialization.values()) {
             this.positionChooser.addOption(position.name(), position);
-            if (position == PositionInitialization.LIMELIGHT) {
+            if (position == PositionInitialization.MIDDLE) {
                 this.positionChooser.setDefaultOption(position.name(), position);
             }
         }
@@ -357,7 +367,7 @@ public class RobotContainer {
             .withPosition(0, 0);
         // Re-set chosen position.
         this.layout.add("Set Starting Position",
-            Commands.runOnce( // TODO CODE : Fix Limelight initial position chooser or remove it
+            Commands.runOnce(
                 () -> drivetrain.seedFieldRelative(Positions.getStartingPose(this.positionChooser.getSelected()))
             ).ignoringDisable(true).withName("Set Again"))
             .withWidget(BuiltInWidgets.kCommand)
@@ -412,11 +422,13 @@ public class RobotContainer {
          *                           Enables intake if no note is seen or if
          *                           within 2 meters of the nearest one.
          *                           Freely rotate within 1 meter.
-         *     Right bumper (hold) : Auto shooting.
+         *     Right bumper (hold) : Auto shooting (with movement allowed).
          */
+        // Drive to a note and intake
         this.driverController.x().onTrue(CommandGenerators.AutonIntakeNote());
-
-        // TODO BIND : Manual-only intake ? Unmoving Shooting ?
+        // Manual intake
+        this.driverController.a().whileTrue(CommandGenerators.IntakeCommand());
+        /* y() : Auto shooting with no movement. */
     }
 
     /** Configures the button bindings of the driver controller */
@@ -446,6 +458,18 @@ public class RobotContainer {
         operatorController.rightBumper()
             .whileTrue(CommandGenerators.ShootSpeakerUpCloseCommand())
             .onFalse(CommandGenerators.ResetPivotToIdlePositionCommand());
+        
+        operatorController.leftBumper()
+            .whileTrue(CommandGenerators.ShootAmpUpCloseCommand())
+            .onFalse(CommandGenerators.ResetPivotToIdlePositionCommand());
+    }
+
+    /**
+     * Gets the currently selected Position Initialization from the chooser.
+     * @return The selected Position Initialization.
+     */
+    public PositionInitialization getSelectedPositionInitialization() {
+        return this.positionChooser.getSelected();
     }
 
     /**

@@ -10,8 +10,8 @@ import com.ctre.phoenix6.mechanisms.swerve.SwerveDrivetrain.SwerveDriveState;
 import com.ctre.phoenix6.mechanisms.swerve.SwerveModule.DriveRequestType;
 import com.ctre.phoenix6.mechanisms.swerve.SwerveRequest;
 
-import edu.wpi.first.math.geometry.Pose2d;
 import edu.wpi.first.math.geometry.Rotation2d;
+import edu.wpi.first.math.geometry.Translation2d;
 import edu.wpi.first.math.geometry.Translation3d;
 import edu.wpi.first.math.kinematics.ChassisSpeeds;
 import edu.wpi.first.math.util.Units;
@@ -20,6 +20,7 @@ import edu.wpi.first.wpilibj2.command.Command;
 import frc.robot.constants.Positions;
 import frc.robot.constants.Constants.ControllerConstants;
 import frc.robot.constants.Constants.ShootingConstants;
+import frc.robot.constants.Constants.ShootingFunctions;
 import frc.robot.constants.PhysicalConstants.IntakeConstants;
 import frc.robot.intake.IntakeSubsystem;
 import frc.robot.pivot.PivotSubsystem;
@@ -101,27 +102,27 @@ public class AutoShootCommand extends Command {
         ShotVector botVector = new ShotVector(botSpeeds.vxMetersPerSecond, botSpeeds.vyMetersPerSecond, 0);
         this.idealShotVector = calculateInitialShotVector().plus(botVector);
 
+        if (this.endEarly) return;
+        
         CommandSwerveDrivetrain.getInstance().setControl(
             getDrivingControl(Rotation2d.fromDegrees(this.idealShotVector.getYaw()))
-        );
-
-        // TODO CODE : Check that the angle can even physically make the shot (NaN v or bad pitch)
-        // TODO CODE : Yaw  too high (so it would hit the edge of the speaker)
-        
+            );
+            
+            
         double distance = botState.Pose.getTranslation().getDistance(this.speakerTranslation3d.toTranslation2d());
         double adjustedPitch = this.idealShotVector.getAdjustedPitch(distance);
-
+        
         PivotSubsystem.getInstance().motionMagicPosition(adjustedPitch);
         ShooterSubsystem.getInstance().motionMagicVelocity(this.idealShotVector.getNormRps());
 
         if (
             Math.min(Math.abs(this.idealShotVector.getYaw() - botHeading), 360 - Math.abs(this.idealShotVector.getYaw() - botHeading))
-                <= ShootingConstants.CALCULATE_YAW_TOLERANCE.apply(distance)
+                <= ShootingFunctions.CALCULATE_YAW_TOLERANCE.apply(distance)
             && Math.abs(PivotSubsystem.getInstance().getPosition() - adjustedPitch)
-                <= ShootingConstants.CALCULATE_PITCH_TOLERANCE.apply(distance)
+                <= ShootingFunctions.CALCULATE_PITCH_TOLERANCE.apply(distance)
             && Math.abs(ShooterSubsystem.getInstance().getVelocity() - this.idealShotVector.getNormRps())
                 <= ShooterSubsystem.metersPerSecondToRotationsPerSecond(
-                    ShootingConstants.CALCULATE_SPEED_TOLERANCE.apply(distance, this.idealShotVector.getPitch())
+                    ShootingFunctions.CALCULATE_SPEED_TOLERANCE.apply(distance, this.idealShotVector.getPitch())
                 )
         ) {
             IntakeSubsystem.getInstance().motionMagicVelocity(IntakeConstants.IDEAL_INTAKE_VELOCITY);
@@ -141,24 +142,38 @@ public class AutoShootCommand extends Command {
         this.timer.stop();
     }
 
+    // Returns true when the command should end.
+    @Override
+    public boolean isFinished() {
+        return this.endEarly || this.timer.hasElapsed(0.25);
+    }
+
     /**
      * Helper that finds the ideal ShotVector from the bot's current position.
      * @return The ShotVector.
      */
     private ShotVector calculateInitialShotVector() {
         SwerveDriveState botState = CommandSwerveDrivetrain.getInstance().getState();
-        Pose2d botPose = botState.Pose;
+        Translation2d botTranslation = botState.Pose.getTranslation();
+        double distance = botTranslation.getDistance(this.speakerTranslation3d.toTranslation2d());
 
-        // TODO 2 : Max distance
-        double distance = botPose.getTranslation().getDistance(this.speakerTranslation3d.toTranslation2d());
+        if (distance > ShootingConstants.MAX_SHOOTING_DISTANCE) {
+            System.err.println(String.format(
+                "AutoShootCommand | Too far from SPEAKER, ending Command. (%.2f > %.2f)",
+                distance, ShootingConstants.MAX_SHOOTING_DISTANCE
+            ));
+            this.endEarly = true;
+            return new ShotVector();
+        }
+
         double yaw = Units.radiansToDegrees(Math.atan2(
-            this.speakerTranslation3d.getY() - botPose.getY(),
-            this.speakerTranslation3d.getX() - botPose.getX()
+            this.speakerTranslation3d.getY() - botTranslation.getY(),
+            this.speakerTranslation3d.getX() - botTranslation.getX()
         ) + Math.PI);
         double velocity = ShooterSubsystem.rotationsPerSecondToMetersPerSecond(
-            ShootingConstants.CALCULATE_SHOOTER_VELOCITY.apply(distance)
+            ShootingFunctions.CALCULATE_SHOOTER_VELOCITY.apply(distance)
         );
-        double pitch = ShootingConstants.CALCULATE_SHOOTER_PITCH.apply(distance, velocity);
+        double pitch = ShootingFunctions.CALCULATE_SHOOTER_PITCH.apply(distance, velocity);
 
         return ShotVector.fromYawPitchVelocity(yaw, pitch, velocity);
     }
@@ -171,6 +186,7 @@ public class AutoShootCommand extends Command {
     private SwerveRequest getDrivingControl(Rotation2d targetRotation) {
         final SwerveRequest.FieldCentricFacingAngle fieldCentricFacingAngle_withDeadband = new CommandSwerveDrivetrain.FieldCentricFacingAngle_PID_Workaround()
             .withDeadband(this.maxSpeed * ControllerConstants.DEADBAND)
+            .withRotationalDeadband(0)
             .withDriveRequestType(DriveRequestType.OpenLoopVoltage);
 
         if (!this.allowMovement) {
@@ -187,11 +203,5 @@ public class AutoShootCommand extends Command {
             .withVelocityX(velocityX)
             .withVelocityY(velocityY)
             .withTargetDirection(targetRotation);
-    }
-
-    // Returns true when the command should end.
-    @Override
-    public boolean isFinished() {
-        return this.endEarly || this.timer.hasElapsed(0.25);
     }
 }
