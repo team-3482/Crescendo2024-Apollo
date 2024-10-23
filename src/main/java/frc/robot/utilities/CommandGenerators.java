@@ -92,7 +92,7 @@ public final class CommandGenerators {
     public static Command ManuallyReverseIntakeCommand() {
         return Commands.runEnd(
             () -> {
-                ShooterSubsystem.getInstance().motionMagicVelocity(-50);
+                ShooterSubsystem.getInstance().motionMagicVelocity(-ShootingConstants.MIN_POSITION_VELOCITY[1]);
                 IntakeSubsystem.getInstance().motionMagicVelocity(IntakeConstants.IDEAL_EJECT_VELOCITY);
             },
             () -> {
@@ -111,17 +111,6 @@ public final class CommandGenerators {
         return Commands.sequence(
             new PivotCommand(ShootingConstants.PIVOT_POSITION_SPEAKER),
             new ShootCommand(ShootingConstants.MIN_POSITION_VELOCITY[1])
-        );
-    }
-
-    /**
-     * A command that calculates the angle to pivot to and shoots.
-     * @return The command.
-     */
-    public static Command AutonShootNoteCommand() {
-        return Commands.sequence(
-            new PivotCommand(10, true, true),
-            new ShootCommand(30)
         );
     }
 }

@@ -11,13 +11,14 @@ import com.ctre.phoenix6.mechanisms.swerve.SwerveRequest;
 import com.ctre.phoenix6.mechanisms.swerve.utility.PhoenixPIDController;
 
 import edu.wpi.first.math.util.Units;
+import frc.robot.constants.PhysicalConstants.ShooterConstants;
 
 /**
  * Constants used throughout the code that are not categorized in other constants files.
  */
 public final class Constants {
     /** Constants used for maintaining a heading when using {@link SwerveRequest#FieldCentricFacingAngle} */
-    public static final PhoenixPIDController HeadingControllerFacingAngle = new PhoenixPIDController(5.5, 0, 0.1);
+    public static final PhoenixPIDController HeadingControllerFacingAngle = new PhoenixPIDController(6, 0, 0);
     
     /**
      * Tab names in Shuffleboard.
@@ -53,7 +54,7 @@ public final class Constants {
          * @return The yaw tolerance in degrees.
          */
         public static final Function<Double, Double> CALCULATE_YAW_TOLERANCE = (Double distance) -> {
-            final double toleranceAt1Meter = 0.1; // 10 cm
+            final double toleranceAt1Meter = 0.14; // 14 cm
             double tolerance = Math.atan(toleranceAt1Meter / distance);
             return Units.radiansToDegrees(tolerance);
         };
@@ -81,7 +82,7 @@ public final class Constants {
          * @return The shooter error in m/s.
          */
         public static final BiFunction<Double, Double, Double> CALCULATE_SPEED_TOLERANCE = (Double distance, Double pitch) -> {
-            final double toleranceAt1Meter = 0.05; // 5 cm
+            final double toleranceAt1Meter = 0.025; // 2.5 cm
             final double GRAVITY = 9.81;
             pitch = Units.degreesToRadians(pitch);
 
@@ -101,8 +102,6 @@ public final class Constants {
                 )
             );
 
-            System.out.printf("max %.2f ; min %.2f ; dist %.2f%n", Math.max(v1, v2), Math.min(v1, v2), Math.max(v1, v2) - Math.min(v1, v2));
-
             return Math.abs(Math.max(v1, v2) - Math.min(v1, v2));
         };
 
@@ -110,7 +109,7 @@ public final class Constants {
         /** [ Minimum position in meters, minimum velocity in rot/s,  ]. */
         public static final double[] MIN_POSITION_VELOCITY = new double[]{ 1.5, 125 };
         /** [ Maximum position in meters, maximum velocity in rot/s ]. */
-        public static final double[] MAX_POSITION_VELOCITY = new double[]{ 5.5, 230 };
+        public static final double[] MAX_POSITION_VELOCITY = new double[]{ 5.5, ShooterConstants.CRUISE_SPEED };
         
         /**
          * A function that linearly interpolates a distance for a velocity between 
@@ -155,7 +154,7 @@ public final class Constants {
                             )
                     )
                 ) / (GRAVITY * distance)
-            )) + 0.055 * Math.exp(distance - 1.5);
+            ));
         };
     }
 }

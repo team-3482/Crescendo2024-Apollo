@@ -11,6 +11,7 @@ import edu.wpi.first.math.geometry.Pose2d;
 import edu.wpi.first.math.geometry.Rotation2d;
 import edu.wpi.first.math.geometry.Translation2d;
 import edu.wpi.first.math.geometry.Translation3d;
+import edu.wpi.first.math.util.Units;
 import edu.wpi.first.wpilibj.DriverStation;
 import frc.robot.limelights.VisionSubsystem;
 
@@ -31,7 +32,7 @@ public final class Positions {
     }
 
     /** SPEAKER height in meters used for calculating pivot angles. */
-    public static final double SPEAKER_HEIGHT = 2.13;
+    public static final double SPEAKER_HEIGHT = Units.inchesToMeters(85);
 
     /** SPEAKER positions to target */
     private static final Map<DriverStation.Alliance, Translation3d> SPEAKER_TARGET = Map.ofEntries(

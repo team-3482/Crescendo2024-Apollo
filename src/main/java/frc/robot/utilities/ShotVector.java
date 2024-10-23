@@ -82,6 +82,19 @@ public class ShotVector {
     }
 
     /**
+     * A helper method that increases the pitch to account for drag based on a heuristic formula.
+     * @param distance - The distance to the SPEAKER in meters.
+     * @return The adjusted pitch in degrees.
+     */
+    public double getAdjustedPitch(double distance) {
+        final double GRAVITY = 9.81;
+        final double b = 0.0085; // Guessed value
+
+        double newPitch = this.pitch + b * Math.pow(this.norm, 2) / GRAVITY * distance;
+        return newPitch;
+    }
+
+    /**
      * Calculates the norm of this ShotVector in m/s.
      * @return The norm in m/s.
      */

@@ -21,12 +21,10 @@ import frc.robot.constants.Positions;
 import frc.robot.constants.Constants.ControllerConstants;
 import frc.robot.constants.Constants.ShootingConstants;
 import frc.robot.constants.PhysicalConstants.IntakeConstants;
-import frc.robot.constants.PhysicalConstants.PivotConstants;
 import frc.robot.intake.IntakeSubsystem;
 import frc.robot.pivot.PivotSubsystem;
 import frc.robot.shooter.ShooterSubsystem;
 import frc.robot.swerve.CommandSwerveDrivetrain;
-import frc.robot.swerve.TunerConstants;
 import frc.robot.utilities.ShotVector;
 
 /** Shoots a Note autonomously. */
@@ -34,9 +32,7 @@ public class AutoShootCommand extends Command {
     // Driving while shooting
     private final Supplier<Double> xSupplier;
     private final Supplier<Double> ySupplier;
-    private final Supplier<Boolean> uncappedSupplier;
-    private final Supplier<Boolean> fineControlSupplier;
-    private final double reasonableMaxSpeed;
+    private final double maxSpeed;
 
     private Translation3d speakerTranslation3d;
     private ShotVector idealShotVector;
@@ -49,22 +45,18 @@ public class AutoShootCommand extends Command {
      * Creates a new AutoShootCommand.
      * @param xSupplier - Supplier for x robot movement from -1.0 to 1.0.
      * @param ySupplier - Supplier for y robot movement from -1.0 to 1.0.
-     * @param uncappedSupplier - Supplier for uncapped top speed.
-     * @param fineControlSupplier - Supplier for fine control.
+     * @param maxSpeed - The maximum speed allowed while shooting.
      * @param allowMovement - Whether to require the driving subsystem, which prevents the driver from moving.
      */
     public AutoShootCommand(
         Supplier<Double> xSupplier, Supplier<Double> ySupplier,
-        Supplier<Boolean> uncappedSupplier, Supplier<Boolean> fineControlSupplier,
-        double reasonableMaxSpeed, boolean allowMovement
+        double maxSpeed, boolean allowMovement
     ) {
         setName("AutoShootCommand");
 
         this.xSupplier = xSupplier;
         this.ySupplier = ySupplier;
-        this.uncappedSupplier = uncappedSupplier;
-        this.fineControlSupplier = fineControlSupplier;
-        this.reasonableMaxSpeed = reasonableMaxSpeed;
+        this.maxSpeed = maxSpeed;
         
         this.allowMovement = allowMovement;
         this.idealShotVector = new ShotVector();
@@ -102,36 +94,30 @@ public class AutoShootCommand extends Command {
         if (this.endEarly) return;
 
         SwerveDriveState botState = CommandSwerveDrivetrain.getInstance().getState();
+        ChassisSpeeds botSpeeds = ChassisSpeeds.fromRobotRelativeSpeeds(botState.speeds, botState.Pose.getRotation());
         double botHeading = botState.Pose.getRotation().getDegrees();
-        ChassisSpeeds botSpeeds = botState.speeds;
 
         // Ignore rotation because it should be none for accurate shooting either way.
         ShotVector botVector = new ShotVector(botSpeeds.vxMetersPerSecond, botSpeeds.vyMetersPerSecond, 0);
-        this.idealShotVector = calculateInitialShotVector().minus(botVector);
+        this.idealShotVector = calculateInitialShotVector().plus(botVector);
 
         CommandSwerveDrivetrain.getInstance().setControl(
             getDrivingControl(Rotation2d.fromDegrees(this.idealShotVector.getYaw()))
         );
 
-        // TODO Check that the angle can even physically make the shot (NaN v or theta)
+        // TODO CODE : Check that the angle can even physically make the shot (NaN v or bad pitch)
+        // TODO CODE : Yaw  too high (so it would hit the edge of the speaker)
         
-        PivotSubsystem.getInstance().motionMagicPosition(this.idealShotVector.getPitch());
-        ShooterSubsystem.getInstance().motionMagicVelocity(this.idealShotVector.getNormRps());
-
         double distance = botState.Pose.getTranslation().getDistance(this.speakerTranslation3d.toTranslation2d());
+        double adjustedPitch = this.idealShotVector.getAdjustedPitch(distance);
 
-        // TODO : Shooter velocity tolerance
-        System.out.printf("Dist : %.2f rps ; Tol : %.2f rps %n",
-            Math.abs(ShooterSubsystem.getInstance().getVelocity() - this.idealShotVector.getNormRps()),
-            ShooterSubsystem.metersPerSecondToRotationsPerSecond(
-                ShootingConstants.CALCULATE_SPEED_TOLERANCE.apply(distance, this.idealShotVector.getPitch())
-            )
-        );
+        PivotSubsystem.getInstance().motionMagicPosition(adjustedPitch);
+        ShooterSubsystem.getInstance().motionMagicVelocity(this.idealShotVector.getNormRps());
 
         if (
             Math.min(Math.abs(this.idealShotVector.getYaw() - botHeading), 360 - Math.abs(this.idealShotVector.getYaw() - botHeading))
                 <= ShootingConstants.CALCULATE_YAW_TOLERANCE.apply(distance)
-            && Math.abs(PivotSubsystem.getInstance().getPosition() - this.idealShotVector.getPitch())
+            && Math.abs(PivotSubsystem.getInstance().getPosition() - adjustedPitch)
                 <= ShootingConstants.CALCULATE_PITCH_TOLERANCE.apply(distance)
             && Math.abs(ShooterSubsystem.getInstance().getVelocity() - this.idealShotVector.getNormRps())
                 <= ShooterSubsystem.metersPerSecondToRotationsPerSecond(
@@ -151,7 +137,6 @@ public class AutoShootCommand extends Command {
     public void end(boolean interrupted) {
         IntakeSubsystem.getInstance().setSpeed(0);
         ShooterSubsystem.getInstance().setSpeed(0);
-        PivotSubsystem.getInstance().motionMagicPosition(PivotConstants.ABOVE_LIMELIGHT_ANGLE);
         
         this.timer.stop();
     }
@@ -164,6 +149,7 @@ public class AutoShootCommand extends Command {
         SwerveDriveState botState = CommandSwerveDrivetrain.getInstance().getState();
         Pose2d botPose = botState.Pose;
 
+        // TODO 2 : Max distance
         double distance = botPose.getTranslation().getDistance(this.speakerTranslation3d.toTranslation2d());
         double yaw = Units.radiansToDegrees(Math.atan2(
             this.speakerTranslation3d.getY() - botPose.getY(),
@@ -184,7 +170,7 @@ public class AutoShootCommand extends Command {
      */
     private SwerveRequest getDrivingControl(Rotation2d targetRotation) {
         final SwerveRequest.FieldCentricFacingAngle fieldCentricFacingAngle_withDeadband = new CommandSwerveDrivetrain.FieldCentricFacingAngle_PID_Workaround()
-            .withDeadband(this.reasonableMaxSpeed * ControllerConstants.DEADBAND)
+            .withDeadband(this.maxSpeed * ControllerConstants.DEADBAND)
             .withDriveRequestType(DriveRequestType.OpenLoopVoltage);
 
         if (!this.allowMovement) {
@@ -194,17 +180,8 @@ public class AutoShootCommand extends Command {
                 .withTargetDirection(targetRotation);
         }
 
-        final double MaxSpeed = TunerConstants.kSpeedAt12VoltsMps;
-
-        boolean topSpeed = this.uncappedSupplier.get();
-        boolean fineControl = this.fineControlSupplier.get();
-
-        double velocityX = this.xSupplier.get()
-            * (topSpeed ? MaxSpeed : this.reasonableMaxSpeed)
-            * (fineControl ? ControllerConstants.FINE_CONTROL_MULT : 1);
-        double velocityY = this.ySupplier.get()
-            * (topSpeed ? MaxSpeed : this.reasonableMaxSpeed)
-            * (fineControl ? ControllerConstants.FINE_CONTROL_MULT : 1);
+        double velocityX = this.xSupplier.get() * this.maxSpeed;
+        double velocityY = this.ySupplier.get() * this.maxSpeed;
         
         return fieldCentricFacingAngle_withDeadband
             .withVelocityX(velocityX)
@@ -215,6 +192,6 @@ public class AutoShootCommand extends Command {
     // Returns true when the command should end.
     @Override
     public boolean isFinished() {
-        return this.endEarly;// || this.timer.hasElapsed(0.25);
+        return this.endEarly || this.timer.hasElapsed(0.25);
     }
 }

@@ -78,10 +78,10 @@ public final class PhysicalConstants {
         /** Gains used for MotionMagic slot 0. */
         public static final class ShooterSlot0Gains {
             public static final double kG = 0;
-            public static final double kS = 0.25;
-            public static final double kV = 0.05;
+            public static final double kS = 0.3;
+            public static final double kV = 0.045;
             public static final double kA = 0;
-            public static final double kP = 0.25;
+            public static final double kP = 0.3;
             public static final double kI = 0;
             public static final double kD = 0;
         }
@@ -92,7 +92,7 @@ public final class PhysicalConstants {
          * This value is not used for MotionMagicVelocity.
          * It is only here as a reminder.
          */
-        public static final double CRUISE_SPEED = 230;
+        public static final double CRUISE_SPEED = 240;
         /** Max mechanism rotations per second^2 */
         public static final double ACCELERATION = 800;
     }
@@ -104,8 +104,8 @@ public final class PhysicalConstants {
 
         /** Upper soft stop angle in degrees. */
         public static final double UPPER_ANGLE_LIMIT = 90;
-        /** Any angle below this would shoot a note into the back Limelight. */
-        public static final double ABOVE_LIMELIGHT_ANGLE = 6;
+        /** Any angle below this would shoot a note into the back Limelight or the protections. */
+        public static final double ABOVE_LIMELIGHT_ANGLE = 16;
         /** Lower soft stop angle in degrees. */
         public static final double LOWER_HARD_STOP = 2.796678; // Hard stop
 

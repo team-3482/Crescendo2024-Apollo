@@ -177,7 +177,7 @@ public class ShooterSubsystem extends SubsystemBase {
      * Gets the mechanism velocities of the two motors, averaged.
      * @return The velocity in rot/s.
      */
-    public double getVelocity() { // TODO : Average velocities of each wheel ? LinearFilter velocity ?
+    public double getVelocity() {
         return this.bottomShooterMotor.getVelocity().getValueAsDouble();
     }
 
