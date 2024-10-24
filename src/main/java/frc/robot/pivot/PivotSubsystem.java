@@ -61,8 +61,9 @@ public class PivotSubsystem extends SubsystemBase {
 
     private final ShuffleboardLayout shuffleboardLayout = Shuffleboard.getTab(ShuffleboardTabNames.DEFAULT)
         .getLayout("PivotSubsystem", BuiltInLayouts.kGrid)
+        .withProperties(Map.of("Number of columns", 1, "Number of rows", 2, "Label position", "TOP"))
         .withSize(2, 4)
-        .withProperties(Map.of("Number of columns", 1, "Number of rows", 2, "Label position", "TOP"));
+        .withPosition(10, 4);
     private GenericEntry shuffleboardPositionDial = shuffleboardLayout
         .add("Pivot Position Dial", 0)
         .withWidget(BuiltInWidgets.kDial)

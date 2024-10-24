@@ -64,8 +64,9 @@ public class IntakeSubsystem extends SubsystemBase {
 
     private final ShuffleboardLayout shuffleboardLayout = Shuffleboard.getTab(ShuffleboardTabNames.DEFAULT)
         .getLayout("IntakeSubsystem", BuiltInLayouts.kGrid)
+        .withProperties(Map.of("Number of columns", 1, "Number of rows", 1, "Label position", "TOP"))
         .withSize(2, 4)
-        .withProperties(Map.of("Number of columns", 1, "Number of rows", 1, "Label position", "TOP"));
+        .withPosition(16, 4);
     private GenericEntry shuffleboardVelocityBar = shuffleboardLayout
         .add("Intake Velocity (rps)", 0)
         .withWidget(BuiltInWidgets.kNumberBar)

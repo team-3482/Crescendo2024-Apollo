@@ -9,6 +9,7 @@ import java.util.Map;
 import com.ctre.phoenix6.mechanisms.swerve.SwerveModule.DriveRequestType;
 import com.ctre.phoenix6.mechanisms.swerve.SwerveRequest;
 import com.pathplanner.lib.auto.AutoBuilder;
+import com.pathplanner.lib.auto.NamedCommands;
 
 import edu.wpi.first.math.geometry.Pose2d;
 import edu.wpi.first.math.geometry.Rotation2d;
@@ -25,6 +26,7 @@ import edu.wpi.first.wpilibj2.command.button.CommandXboxController;
 import edu.wpi.first.wpilibj2.command.button.Trigger;
 import frc.robot.constants.Positions.PositionInitialization;
 import frc.robot.intake.IntakeSubsystem;
+import frc.robot.intake.RunIntakeCommand;
 import frc.robot.limelights.DetectionSubsystem;
 import frc.robot.limelights.VisionSubsystem;
 import frc.robot.pivot.ManuallyPivotCommand;
@@ -41,14 +43,15 @@ import frc.robot.constants.Constants.ShuffleboardTabNames;
 import frc.robot.constants.LimelightConstants.DetectionConstants;
 import frc.robot.constants.PhysicalConstants.PivotConstants;
 import frc.robot.auto.AutoShootCommand;
+import frc.robot.auto.DriveToNoteCommand;
 import frc.robot.constants.Positions;
 import frc.robot.utilities.CommandGenerators;
 
 public class RobotContainer {
+
     // Thread-safe singleton design pattern.
     private static volatile RobotContainer instance;
     private static Object mutex = new Object();
-
 
     public static RobotContainer getInstance() {
         RobotContainer result = instance;
@@ -69,8 +72,9 @@ public class RobotContainer {
     private final SendableChooser<PositionInitialization> positionChooser = new SendableChooser<PositionInitialization>();
     private final ShuffleboardLayout layout = Shuffleboard.getTab(ShuffleboardTabNames.DEFAULT)
         .getLayout("SwerveSubsystem", BuiltInLayouts.kList)
+        .withProperties(Map.of("Number of columns", 1, "Number of rows", 2, "Label position", "TOP"))
         .withSize(2, 3)
-        .withProperties(Map.of("Number of columns", 1, "Number of rows", 2, "Label position", "TOP"));
+        .withPosition(0, 4);
 
     // Instance of the controllers used to drive the robot
     private CommandXboxController driverController;
@@ -94,7 +98,8 @@ public class RobotContainer {
         Shuffleboard.getTab(ShuffleboardTabNames.DEFAULT)
             .add("Auto Chooser", autoChooser)
             .withWidget(BuiltInWidgets.kComboBoxChooser)
-            .withSize(6, 1);
+            .withSize(4, 3)
+            .withPosition(2, 4);
     }
 
     /**
@@ -337,7 +342,17 @@ public class RobotContainer {
                 ShootingConstants.MAX_MOVEMENT_SPEED,
                 true
             ))
-            .onFalse(new PivotCommand(PivotConstants.ABOVE_LIMELIGHT_ANGLE));
+            .onFalse(CommandGenerators.ResetPivotToIdlePositionCommand());
+        
+        NamedCommands.registerCommand(
+            "AutoShootCommand",
+            new AutoShootCommand(
+                () -> -driverController.getLeftY(),
+                () -> -driverController.getLeftX(),
+                ShootingConstants.MAX_MOVEMENT_SPEED,
+                true
+            ).andThen(CommandGenerators.ResetPivotToIdlePositionCommand())
+        );
         
         this.driverController.y()
             .whileTrue(new AutoShootCommand(
@@ -386,7 +401,12 @@ public class RobotContainer {
 
     /** Register all NamedCommands for PathPlanner use */
     private void registerNamedCommands() {
-        
+        NamedCommands.registerCommand("AutonIntakeNote", CommandGenerators.AutonIntakeNote());
+        NamedCommands.registerCommand("DriveToNoteTimeout", new DriveToNoteCommand().andThen(Commands.waitSeconds(2)));
+        NamedCommands.registerCommand("ResetPivotToIdlePosition", new PivotCommand(PivotConstants.ABOVE_LIMELIGHT_ANGLE));
+        NamedCommands.registerCommand("RunIntake", new RunIntakeCommand());
+
+        NamedCommands.registerCommand("AutonIntakeNote", CommandGenerators.AutonIntakeNote());
     }
 
     /**
@@ -477,6 +497,6 @@ public class RobotContainer {
      * @return The command to run in autonomous
      */
     public Command getAutonomousCommand() {
-        return autoChooser.getSelected();
+        return this.autoChooser.getSelected();
     }
 }

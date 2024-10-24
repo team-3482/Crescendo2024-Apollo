@@ -157,8 +157,6 @@ public class AutoShootCommand extends Command {
         Translation2d botTranslation = botState.Pose.getTranslation();
         double distance = botTranslation.getDistance(this.speakerTranslation3d.toTranslation2d());
 
-        System.out.println(distance);
-
         if (distance > ShootingConstants.MAX_SHOOTING_DISTANCE) {
             System.err.println(String.format(
                 "AutoShootCommand | Too far from SPEAKER, ending Command. (%.2f > %.2f)",

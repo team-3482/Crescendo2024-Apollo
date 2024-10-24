@@ -85,11 +85,13 @@ public class VisionSubsystem extends SubsystemBase {
             Shuffleboard.getTab(ShuffleboardTabNames.DEFAULT)
                 .add(LimelightConstants.FRONT_APRIL_TAG_LL, frontLLCamera)
                 .withWidget(BuiltInWidgets.kCameraStream)
-                .withProperties(Map.of("Show Crosshair", false, "Show Controls", false));
+                .withProperties(Map.of("Show Crosshair", false, "Show Controls", false))
+                .withPosition(0, 0);
             Shuffleboard.getTab(ShuffleboardTabNames.DEFAULT)
                 .add(LimelightConstants.BACK_APRIL_TAG_LL, backLLCamera)
                 .withWidget(BuiltInWidgets.kCameraStream)
-                .withProperties(Map.of("Show Crosshair", false, "Show Controls", false));
+                .withProperties(Map.of("Show Crosshair", false, "Show Controls", false))
+                .withPosition(6, 0);
         }
 
         this.notifier = new Notifier(() -> notifierLoop());

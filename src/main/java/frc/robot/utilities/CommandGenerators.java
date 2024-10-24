@@ -36,8 +36,8 @@ public final class CommandGenerators {
      */
     public static Command IntakeCommand() {
         return Commands.sequence(
-                CommandGenerators.ResetPivotToIdlePositionCommand(),
-                new RunIntakeCommand()
+            CommandGenerators.ResetPivotToIdlePositionCommand(),
+            new RunIntakeCommand()
         );
     }
 

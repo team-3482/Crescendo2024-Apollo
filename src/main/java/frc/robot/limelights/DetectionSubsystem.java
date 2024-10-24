@@ -72,7 +72,8 @@ public class DetectionSubsystem extends SubsystemBase {
     private final ShuffleboardLayout shuffleboardLayout = Shuffleboard.getTab(ShuffleboardTabNames.DEFAULT)
         .getLayout("DetectionSubsystem", BuiltInLayouts.kGrid)
         .withProperties(Map.of("Number of columns", 1, "Number of rows", 2, "Label position", "TOP"))
-        .withSize(3, 3);
+        .withSize(4, 3)
+        .withPosition(12, 4);
     private final GenericEntry widthDistanceEntry = shuffleboardLayout
         .add("Closest Width-D (m)", 0)
         .withWidget(BuiltInWidgets.kNumberBar)
@@ -102,7 +103,8 @@ public class DetectionSubsystem extends SubsystemBase {
             Shuffleboard.getTab(ShuffleboardTabNames.DEFAULT)
                 .add(LimelightConstants.NOTE_DETECTION_LL, frontLLCamera)
                 .withWidget(BuiltInWidgets.kCameraStream)
-                .withProperties(Map.of("Show Crosshair", false, "Show Controls", false));
+                .withProperties(Map.of("Show Crosshair", false, "Show Controls", false))
+                .withPosition(12, 0);
         }
 
         this.notifier = new Notifier(() -> notifierLoop());
