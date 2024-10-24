@@ -39,25 +39,22 @@ public class AutoShootCommand extends Command {
     private ShotVector idealShotVector;
     private boolean allowMovement;
     
-    private boolean endEarly;
+    private boolean noSpeaker;
+    private boolean withinDistance;
     private Timer timer;
 
     /**
      * Creates a new AutoShootCommand.
      * @param xSupplier - Supplier for x robot movement from -1.0 to 1.0.
      * @param ySupplier - Supplier for y robot movement from -1.0 to 1.0.
-     * @param maxSpeed - The maximum speed allowed while shooting.
-     * @param allowMovement - Whether to require the driving subsystem, which prevents the driver from moving.
+     * @param allowMovement - Whether to allow driver input while shooting.
      */
-    public AutoShootCommand(
-        Supplier<Double> xSupplier, Supplier<Double> ySupplier,
-        double maxSpeed, boolean allowMovement
-    ) {
+    private AutoShootCommand(Supplier<Double> xSupplier, Supplier<Double> ySupplier, boolean allowMovement) {
         setName("AutoShootCommand");
 
         this.xSupplier = xSupplier;
         this.ySupplier = ySupplier;
-        this.maxSpeed = maxSpeed;
+        this.maxSpeed = ShootingConstants.MAX_MOVEMENT_SPEED;
         
         this.allowMovement = allowMovement;
         this.idealShotVector = new ShotVector();
@@ -72,17 +69,32 @@ public class AutoShootCommand extends Command {
         );
     }
 
+    /** Creates a new AutoShootCommand that does not allow movement. */
+    public AutoShootCommand() {
+        this(null, null, false);
+    }
+
+    /**
+     * Creates a new AutoShootCommand that allows movement.
+     * @param xSupplier - Supplier for x robot movement from -1.0 to 1.0.
+     * @param ySupplier - Supplier for y robot movement from -1.0 to 1.0.
+     */
+    public AutoShootCommand(Supplier<Double> xSupplier, Supplier<Double> ySupplier) {
+        this(xSupplier, ySupplier, true);
+    }
+
     // Called when the command is initially scheduled.
     @Override
     public void initialize() {
-        this.endEarly = false;
+        this.noSpeaker = false;
+        this.withinDistance = false;
 
         try {
             this.speakerTranslation3d = Positions.getSpeakerTarget();
         }
         catch (RuntimeException e) {
             System.err.println("Alliance is empty ; cannot target SPEAKER.");
-            this.endEarly = true;
+            this.noSpeaker = true;
             return;
         }
 
@@ -92,7 +104,7 @@ public class AutoShootCommand extends Command {
     // Called every time the scheduler runs while the command is scheduled.
     @Override
     public void execute() {
-        if (this.endEarly) return;
+        if (this.noSpeaker) return;
 
         SwerveDriveState botState = CommandSwerveDrivetrain.getInstance().getState();
         ChassisSpeeds botSpeeds = ChassisSpeeds.fromRobotRelativeSpeeds(botState.speeds, botState.Pose.getRotation());
@@ -102,12 +114,12 @@ public class AutoShootCommand extends Command {
         ShotVector botVector = new ShotVector(botSpeeds.vxMetersPerSecond, botSpeeds.vyMetersPerSecond, 0);
         this.idealShotVector = calculateInitialShotVector().plus(botVector);
 
-        if (this.endEarly) return;
         
         CommandSwerveDrivetrain.getInstance().setControl(
             getDrivingControl(Rotation2d.fromDegrees(this.idealShotVector.getYaw()))
-            );
+        );
             
+        if (!this.withinDistance) return;
             
         double distance = botState.Pose.getTranslation().getDistance(this.speakerTranslation3d.toTranslation2d());
         double adjustedPitch = this.idealShotVector.getAdjustedPitch(distance);
@@ -145,7 +157,7 @@ public class AutoShootCommand extends Command {
     // Returns true when the command should end.
     @Override
     public boolean isFinished() {
-        return this.endEarly || this.timer.hasElapsed(0.25);
+        return this.noSpeaker || (!this.allowMovement && !this.withinDistance) || this.timer.hasElapsed(0.25);
     }
 
     /**
@@ -159,11 +171,14 @@ public class AutoShootCommand extends Command {
 
         if (distance > ShootingConstants.MAX_SHOOTING_DISTANCE) {
             System.err.println(String.format(
-                "AutoShootCommand | Too far from SPEAKER, ending Command. (%.2f > %.2f)",
+                "AutoShootCommand | Too far from SPEAKER. (%.2f > %.2f)",
                 distance, ShootingConstants.MAX_SHOOTING_DISTANCE
             ));
-            this.endEarly = true;
+            this.withinDistance = false;
             return new ShotVector();
+        }
+        else {
+            this.withinDistance = true;
         }
 
         double yaw = Units.radiansToDegrees(Math.atan2(

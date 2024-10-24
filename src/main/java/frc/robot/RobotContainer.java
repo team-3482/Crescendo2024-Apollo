@@ -26,11 +26,9 @@ import edu.wpi.first.wpilibj2.command.button.CommandXboxController;
 import edu.wpi.first.wpilibj2.command.button.Trigger;
 import frc.robot.constants.Positions.PositionInitialization;
 import frc.robot.intake.IntakeSubsystem;
-import frc.robot.intake.RunIntakeCommand;
 import frc.robot.limelights.DetectionSubsystem;
 import frc.robot.limelights.VisionSubsystem;
 import frc.robot.pivot.ManuallyPivotCommand;
-import frc.robot.pivot.PivotCommand;
 import frc.robot.pivot.PivotSubsystem;
 import frc.robot.pivot.ResetAtHardstopCommand;
 import frc.robot.shooter.ShooterSubsystem;
@@ -38,17 +36,12 @@ import frc.robot.swerve.CommandSwerveDrivetrain;
 import frc.robot.swerve.Telemetry;
 import frc.robot.swerve.TunerConstants;
 import frc.robot.constants.Constants.ControllerConstants;
-import frc.robot.constants.Constants.ShootingConstants;
 import frc.robot.constants.Constants.ShuffleboardTabNames;
 import frc.robot.constants.LimelightConstants.DetectionConstants;
-import frc.robot.constants.PhysicalConstants.PivotConstants;
-import frc.robot.auto.AutoShootCommand;
-import frc.robot.auto.DriveToNoteCommand;
 import frc.robot.constants.Positions;
 import frc.robot.utilities.CommandGenerators;
 
 public class RobotContainer {
-
     // Thread-safe singleton design pattern.
     private static volatile RobotContainer instance;
     private static Object mutex = new Object();
@@ -86,9 +79,10 @@ public class RobotContainer {
         this.operatorController = new CommandXboxController(ControllerConstants.OPERATOR_CONTROLLER_ID);
 
         configureDrivetrain(); // This is done separately because it works differently from other Subsystems
+        configurePositionChooser();
 
         initializeSubsystems();
-        // Register named commands for pathplanner (always do this after subsystem initialization)
+        // Register named commands for Pathplanner (always do this after subsystem initialization)
         registerNamedCommands();
 
         configureDriverBindings();
@@ -159,6 +153,7 @@ public class RobotContainer {
             .withDriveRequestType(DriveRequestType.OpenLoopVoltage);
         Command intakeCommand = CommandGenerators.IntakeCommand();
         
+        // TODO ? Separate Command that will store Note position and work similarly to AutoShootCommand() and DriveToNoteCommand ?
         this.driverController.leftBumper()
             .whileTrue(drivetrain.applyRequest(() -> {
                 boolean topSpeed = leftTrigger.getAsBoolean();
@@ -223,58 +218,6 @@ public class RobotContainer {
             .onFalse(Commands.runOnce(
                 () -> CommandScheduler.getInstance().cancel(intakeCommand)
             ));
-        
-        this.driverController.rightBumper().whileTrue(
-            drivetrain.applyRequest(() -> {
-                boolean topSpeed = leftTrigger.getAsBoolean();
-                boolean fineControl = rightTrigger.getAsBoolean();
-
-                double velocityX = -driverController.getLeftY()
-                    * (topSpeed ? MaxSpeed : reasonableMaxSpeed)
-                    * (fineControl ? ControllerConstants.FINE_CONTROL_MULT : 1);
-                double velocityY = -driverController.getLeftX()
-                    * (topSpeed ? MaxSpeed : reasonableMaxSpeed)
-                    * (fineControl ? ControllerConstants.FINE_CONTROL_MULT : 1);
-
-                Translation2d speakerTranslation;
-                try {
-                    speakerTranslation = Positions.getSpeakerTarget().toTranslation2d();
-                }
-                catch (RuntimeException e) {
-                    System.err.println("Alliance is empty ; cannot target SPEAKER.");
-                    return fieldCentricDrive_withDeadband
-                        .withVelocityX(velocityX)
-                        .withVelocityY(velocityY)
-                        .withRotationalRate(
-                            -driverController.getRightX()
-                            * (topSpeed ? MaxAngularRate : reasonableMaxAngularRate)
-                            * (fineControl ? ControllerConstants.FINE_CONTROL_MULT : 1)
-                        );
-                }
-
-                Pose2d botPose = drivetrain.getState().Pose;
-                Rotation2d targetRotation = new Rotation2d(
-                    Math.atan2(
-                        speakerTranslation.getY() - botPose.getY(),
-                        speakerTranslation.getX() - botPose.getX()
-                    ) + Math.PI // Face with shooter, which is the back of the bot
-                );
-
-                double goalAngle = targetRotation.getDegrees();
-                double currentAngle = botPose.getRotation().getDegrees();
-
-                if (Math.min(Math.abs(goalAngle - currentAngle), 360 - Math.abs(goalAngle - currentAngle))
-                        <= 2)
-                    {
-                        System.out.println("FacingSpeaker | Ready to shoot.");
-                    }
-                
-                return fieldCentricFacingAngle_withDeadband
-                    .withVelocityX(velocityX)
-                    .withVelocityY(velocityY)
-                    .withTargetDirection(targetRotation);
-            })
-        );
 
         // Useful for testing
         // final SwerveRequest.SwerveDriveBrake brake = new SwerveRequest.SwerveDriveBrake();
@@ -324,47 +267,12 @@ public class RobotContainer {
                 )
             );
         }
-
-        // Burger
-        this.driverController.start().onTrue(drivetrain.runOnce(() -> drivetrain.seedFieldRelative()));
-        // Double Rectangle
-        this.driverController.back().onTrue(drivetrain.runOnce(() -> {
-            Pose2d estimatedPose = VisionSubsystem.getInstance().getEstimatedPose();
-            if (!estimatedPose.equals(new Pose2d())) {
-                drivetrain.seedFieldRelative(estimatedPose);
-            }
-        }));
-
-        this.driverController.rightBumper()
-            .whileTrue(new AutoShootCommand(
-                () -> -driverController.getLeftY(),
-                () -> -driverController.getLeftX(),
-                ShootingConstants.MAX_MOVEMENT_SPEED,
-                true
-            ))
-            .onFalse(CommandGenerators.ResetPivotToIdlePositionCommand());
-        
-        NamedCommands.registerCommand(
-            "AutoShootCommand",
-            new AutoShootCommand(
-                () -> -driverController.getLeftY(),
-                () -> -driverController.getLeftX(),
-                ShootingConstants.MAX_MOVEMENT_SPEED,
-                true
-            ).andThen(CommandGenerators.ResetPivotToIdlePositionCommand())
-        );
-        
-        this.driverController.y()
-            .whileTrue(new AutoShootCommand(
-                () -> -driverController.getLeftY(),
-                () -> -driverController.getLeftX(),
-                ShootingConstants.MAX_MOVEMENT_SPEED,
-                false
-            ))
-            .onFalse(new PivotCommand(PivotConstants.ABOVE_LIMELIGHT_ANGLE));
         
         drivetrain.registerTelemetry(logger::telemeterize);
+    }
 
+    /** Configures the PositionInitialization chooser for the odometry. */
+    private void configurePositionChooser() {
         // Position chooser
         for (PositionInitialization position : PositionInitialization.values()) {
             this.positionChooser.addOption(position.name(), position);
@@ -374,22 +282,24 @@ public class RobotContainer {
         }
         
         this.positionChooser.onChange((PositionInitialization position) ->
-            drivetrain.seedFieldRelative(Positions.getStartingPose(position))
+            CommandSwerveDrivetrain.getInstance().seedFieldRelative(Positions.getStartingPose(position))
         );
 
         this.layout.add("Starting Position", this.positionChooser)
             .withWidget(BuiltInWidgets.kComboBoxChooser)
             .withPosition(0, 0);
         // Re-set chosen position.
-        this.layout.add("Set Starting Position",
+        this.layout.add(
+            "Set Starting Position",
             Commands.runOnce(
-                () -> drivetrain.seedFieldRelative(Positions.getStartingPose(this.positionChooser.getSelected()))
+                () -> CommandSwerveDrivetrain.getInstance()
+                    .seedFieldRelative(Positions.getStartingPose(this.positionChooser.getSelected()))
             ).ignoringDisable(true).withName("Set Again"))
             .withWidget(BuiltInWidgets.kCommand)
             .withPosition(0, 1);
     }
 
-    /** Creates instances of each subsystem so periodic runs */
+    /** Creates instances of each subsystem so periodic always runs. */
     private void initializeSubsystems() {
         VisionSubsystem.getInstance();
         DetectionSubsystem.getInstance();
@@ -401,12 +311,8 @@ public class RobotContainer {
 
     /** Register all NamedCommands for PathPlanner use */
     private void registerNamedCommands() {
-        NamedCommands.registerCommand("AutonIntakeNote", CommandGenerators.AutonIntakeNote());
-        NamedCommands.registerCommand("DriveToNoteTimeout", new DriveToNoteCommand().andThen(Commands.waitSeconds(2)));
-        NamedCommands.registerCommand("ResetPivotToIdlePosition", new PivotCommand(PivotConstants.ABOVE_LIMELIGHT_ANGLE));
-        NamedCommands.registerCommand("RunIntake", new RunIntakeCommand());
-
-        NamedCommands.registerCommand("AutonIntakeNote", CommandGenerators.AutonIntakeNote());
+        NamedCommands.registerCommand("AutonIntakeNote", CommandGenerators.AutonIntakeNoteCommand());
+        NamedCommands.registerCommand("AutoShootNoteStaticCommand", CommandGenerators.AutoShootNoteStaticCommand());
     }
 
     /**
@@ -420,15 +326,12 @@ public class RobotContainer {
          * POV, joysticks, and start/back are all used in configureDrivetrain()
          *           Left joystick : Translational movement
          *          Right joystick : Rotational movement
-         *          Start / Burger : Reset heading
-         * Back / Double Rectangle : Reset position to LL data (if not empty)
          *    POV (overrides joys) : Directional movement -- 0.25 m/s
          */
-        // this.driverController.back().onTrue(
-        //     CommandSwerveDrivetrain.getInstance().runOnce(() -> CommandSwerveDrivetrain.getInstance().seedFieldRelative(
-        //         new Pose2d(new Translation2d(0.5, 5), new Rotation2d())
-        //     ))
-        // );
+        // Burger
+        this.driverController.start().onTrue(CommandGenerators.SetForwardDirectionCommand());
+        // Double Rectangle
+        this.driverController.back().onTrue(CommandGenerators.ResetPoseUsingLimelightCommand());
         /*
          * Triggers are also used in configureDrivetrain()
          *      Left Trigger > 0.5 : Use TOP SPEED for joysticks
@@ -437,18 +340,22 @@ public class RobotContainer {
          *                           Use ROBOT CENTRIC for POV 
          */
         /*
-         * Bumpers are also used in configureDrivetrain()
          *      Left bumper (hold) : Targets nearest Note to rotate around.
          *                           Enables intake if no note is seen or if
          *                           within 2 meters of the nearest one.
          *                           Freely rotate within 1 meter.
-         *     Right bumper (hold) : Auto shooting (with movement allowed).
          */
+        this.driverController.rightBumper()
+            .whileTrue(CommandGenerators.AutoShootNoteMovementCommand())
+            .onFalse(CommandGenerators.PivotToIdlePositionCommand());
+        
+        this.driverController.y()
+            .whileTrue(CommandGenerators.AutoShootNoteStaticCommand())
+            .onFalse(CommandGenerators.PivotToIdlePositionCommand());
         // Drive to a note and intake
-        this.driverController.x().onTrue(CommandGenerators.AutonIntakeNote());
+        this.driverController.x().onTrue(CommandGenerators.AutonIntakeNoteCommand());
         // Manual intake
         this.driverController.a().whileTrue(CommandGenerators.IntakeCommand());
-        /* y() : Auto shooting with no movement. */
     }
 
     /** Configures the button bindings of the driver controller */
@@ -477,19 +384,27 @@ public class RobotContainer {
         
         operatorController.rightBumper()
             .whileTrue(CommandGenerators.ShootSpeakerUpCloseCommand())
-            .onFalse(CommandGenerators.ResetPivotToIdlePositionCommand());
+            .onFalse(CommandGenerators.PivotToIdlePositionCommand());
         
         operatorController.leftBumper()
             .whileTrue(CommandGenerators.ShootAmpUpCloseCommand())
-            .onFalse(CommandGenerators.ResetPivotToIdlePositionCommand());
+            .onFalse(CommandGenerators.PivotToIdlePositionCommand());
     }
 
     /**
-     * Gets the currently selected Position Initialization from the chooser.
-     * @return The selected Position Initialization.
+     * Gets the instance of the driverController.
+     * @return The driver controller.
      */
-    public PositionInitialization getSelectedPositionInitialization() {
-        return this.positionChooser.getSelected();
+    public CommandXboxController getDriverController() {
+        return this.driverController;
+    }
+
+    /**
+     * Gets the instance of the operatorController.
+     * @return The operator controller.
+     */
+    public CommandXboxController getOperatorController() {
+        return this.operatorController;
     }
 
     /**
