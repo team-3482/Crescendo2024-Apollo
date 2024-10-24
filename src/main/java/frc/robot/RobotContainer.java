@@ -315,10 +315,7 @@ public class RobotContainer {
         NamedCommands.registerCommand("AutoShootNoteStaticCommand", CommandGenerators.AutoShootNoteStaticCommand());
     }
 
-    /**
-     * Configures the button bindings of the driver controller
-     * @apiNote POV, joysticks, and start / back are all used in {@link RobotContainer#configureDrivetrain()}
-     */
+    /** Configures the button bindings of the driver controller. */
     private void configureDriverBindings() {
         this.driverController.b().onTrue(CommandGenerators.CancelAllCommands());
 
@@ -358,7 +355,7 @@ public class RobotContainer {
         this.driverController.a().whileTrue(CommandGenerators.IntakeCommand());
     }
 
-    /** Configures the button bindings of the driver controller */
+    /** Configures the button bindings of the operator controller. */
     private void configureOperatorBindings() {
         operatorController.b().onTrue(CommandGenerators.CancelAllCommands());
 
@@ -409,7 +406,7 @@ public class RobotContainer {
 
     /**
      * Use this to pass the autonomous command to the main {@link Robot} class.
-     * @return The command to run in autonomous
+     * @return The command to run in autonomous.
      */
     public Command getAutonomousCommand() {
         return this.autoChooser.getSelected();
