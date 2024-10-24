@@ -11,16 +11,12 @@ import com.ctre.phoenix6.mechanisms.swerve.SwerveRequest;
 import com.pathplanner.lib.auto.AutoBuilder;
 import com.pathplanner.lib.auto.NamedCommands;
 
-import edu.wpi.first.math.geometry.Pose2d;
-import edu.wpi.first.math.geometry.Rotation2d;
-import edu.wpi.first.math.geometry.Translation2d;
 import edu.wpi.first.wpilibj.shuffleboard.BuiltInLayouts;
 import edu.wpi.first.wpilibj.shuffleboard.BuiltInWidgets;
 import edu.wpi.first.wpilibj.shuffleboard.Shuffleboard;
 import edu.wpi.first.wpilibj.shuffleboard.ShuffleboardLayout;
 import edu.wpi.first.wpilibj.smartdashboard.SendableChooser;
 import edu.wpi.first.wpilibj2.command.Command;
-import edu.wpi.first.wpilibj2.command.CommandScheduler;
 import edu.wpi.first.wpilibj2.command.Commands;
 import edu.wpi.first.wpilibj2.command.button.CommandXboxController;
 import edu.wpi.first.wpilibj2.command.button.Trigger;
@@ -37,7 +33,6 @@ import frc.robot.swerve.Telemetry;
 import frc.robot.swerve.TunerConstants;
 import frc.robot.constants.Constants.ControllerConstants;
 import frc.robot.constants.Constants.ShuffleboardTabNames;
-import frc.robot.constants.LimelightConstants.DetectionConstants;
 import frc.robot.constants.Positions;
 import frc.robot.utilities.CommandGenerators;
 
@@ -104,8 +99,8 @@ public class RobotContainer {
         final CommandSwerveDrivetrain drivetrain = CommandSwerveDrivetrain.getInstance();
         final double MaxSpeed = TunerConstants.kSpeedAt12VoltsMps;
         final double MaxAngularRate = TunerConstants.kAngularSpeedMaxRadps;
-        final double reasonableMaxSpeed = MaxSpeed * 0.5;
-        final double reasonableMaxAngularRate = MaxAngularRate * 0.5;
+        final double reasonableMaxSpeed = TunerConstants.reasonableMaxSpeed;
+        final double reasonableMaxAngularRate = TunerConstants.reasonableMaxAngularRate;
 
         final SwerveRequest.FieldCentric fieldCentricDrive_withDeadband = new SwerveRequest.FieldCentric()
             .withDeadband(reasonableMaxSpeed * ControllerConstants.DEADBAND)
@@ -145,6 +140,7 @@ public class RobotContainer {
             }).ignoringDisable(true)
         );
 
+        /*
         // Toggle intake mode
         // Faces closest note in vision and enables intake within 2 meters,
         // or drives normally with intake enabled when no notes are found.
@@ -153,7 +149,6 @@ public class RobotContainer {
             .withDriveRequestType(DriveRequestType.OpenLoopVoltage);
         Command intakeCommand = CommandGenerators.IntakeCommand();
         
-        // TODO ? Separate Command that will store Note position and work similarly to AutoShootCommand() and DriveToNoteCommand ?
         this.driverController.leftBumper()
             .whileTrue(drivetrain.applyRequest(() -> {
                 boolean topSpeed = leftTrigger.getAsBoolean();
@@ -218,6 +213,7 @@ public class RobotContainer {
             .onFalse(Commands.runOnce(
                 () -> CommandScheduler.getInstance().cancel(intakeCommand)
             ));
+        */
 
         // Useful for testing
         // final SwerveRequest.SwerveDriveBrake brake = new SwerveRequest.SwerveDriveBrake();
@@ -342,6 +338,13 @@ public class RobotContainer {
          *                           within 2 meters of the nearest one.
          *                           Freely rotate within 1 meter.
          */
+        // TODO : Test CenterAndIntakeNoteCommand()
+        // - Start with note really close up
+        // - Start with note in back laser but not front laser
+        // - Start with note at reasonable distance
+        // - Start with note far away
+        this.driverController.leftBumper()
+            .whileTrue(CommandGenerators.CenterAndIntakeNoteCommand());
         this.driverController.rightBumper()
             .whileTrue(CommandGenerators.AutoShootNoteMovementCommand())
             .onFalse(CommandGenerators.PivotToIdlePositionCommand());
@@ -357,33 +360,33 @@ public class RobotContainer {
 
     /** Configures the button bindings of the operator controller. */
     private void configureOperatorBindings() {
-        operatorController.b().onTrue(CommandGenerators.CancelAllCommands());
+        this.operatorController.b().onTrue(CommandGenerators.CancelAllCommands());
 
         PivotSubsystem.getInstance().setDefaultCommand(new ManuallyPivotCommand(
             () -> operatorController.getRightTriggerAxis(),
             () -> operatorController.getLeftTriggerAxis(),
             false
         ));
-        operatorController.a().onTrue(new ResetAtHardstopCommand(false).withTimeout(5));
+        this.operatorController.a().onTrue(new ResetAtHardstopCommand(false).withTimeout(5));
 
-        operatorController.pov(0)
+        this.operatorController.pov(0)
             .whileTrue(PivotSubsystem.getInstance().run(
                 () -> PivotSubsystem.getInstance().motionMagicPosition(90)
             ));
-        operatorController.pov(180)
+            this.operatorController.pov(180)
             .whileTrue(PivotSubsystem.getInstance().run(
                 () -> PivotSubsystem.getInstance().motionMagicPosition(5)
             ));
 
         // Testing shooting
-        operatorController.pov(90).whileTrue(CommandGenerators.ManualIntakeCommand());
-        operatorController.pov(270).whileTrue(CommandGenerators.ManuallyReverseIntakeCommand());
+        this.operatorController.pov(90).whileTrue(CommandGenerators.ManualIntakeCommand());
+        this.operatorController.pov(270).whileTrue(CommandGenerators.ManuallyReverseIntakeCommand());
         
-        operatorController.rightBumper()
+        this.operatorController.rightBumper()
             .whileTrue(CommandGenerators.ShootSpeakerUpCloseCommand())
             .onFalse(CommandGenerators.PivotToIdlePositionCommand());
         
-        operatorController.leftBumper()
+        this.operatorController.leftBumper()
             .whileTrue(CommandGenerators.ShootAmpUpCloseCommand())
             .onFalse(CommandGenerators.PivotToIdlePositionCommand());
     }

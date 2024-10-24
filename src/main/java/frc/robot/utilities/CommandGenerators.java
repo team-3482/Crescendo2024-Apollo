@@ -11,6 +11,7 @@ import frc.robot.auto.DriveToNoteCommand;
 import frc.robot.constants.Constants.ShootingConstants;
 import frc.robot.constants.PhysicalConstants.IntakeConstants;
 import frc.robot.constants.PhysicalConstants.PivotConstants;
+import frc.robot.intake.IntakeNoteCommand;
 import frc.robot.intake.IntakeSubsystem;
 import frc.robot.intake.RunIntakeCommand;
 import frc.robot.limelights.VisionSubsystem;
@@ -106,6 +107,21 @@ public final class CommandGenerators {
      */
     public static Command AutoShootNoteStaticCommand() {
         return new AutoShootCommand();
+    }
+
+    /**
+     * A command that centers on the closest note and intakes it.
+     * @return The command.
+     */
+    public static Command CenterAndIntakeNoteCommand() {
+        CommandXboxController driverController = RobotContainer.getInstance().getDriverController();
+        return new IntakeNoteCommand(
+            () -> -driverController.getLeftY(),
+            () -> -driverController.getLeftX(),
+            () -> -driverController.getRightX(),
+            () -> driverController.leftTrigger().getAsBoolean(),
+            () -> driverController.rightTrigger().getAsBoolean()
+        );
     }
 
     // OPERATOR
