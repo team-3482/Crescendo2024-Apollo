@@ -9,6 +9,7 @@ import java.util.Map;
 import com.ctre.phoenix6.mechanisms.swerve.SwerveModule.DriveRequestType;
 import com.ctre.phoenix6.mechanisms.swerve.SwerveRequest;
 import com.pathplanner.lib.auto.AutoBuilder;
+import com.pathplanner.lib.auto.NamedCommands;
 
 import edu.wpi.first.math.geometry.Pose2d;
 import edu.wpi.first.math.geometry.Rotation2d;
@@ -24,22 +25,26 @@ import edu.wpi.first.wpilibj2.command.Commands;
 import edu.wpi.first.wpilibj2.command.button.CommandXboxController;
 import edu.wpi.first.wpilibj2.command.button.Trigger;
 import frc.robot.constants.Positions.PositionInitialization;
+import frc.robot.intake.IntakeSubsystem;
 import frc.robot.limelights.DetectionSubsystem;
 import frc.robot.limelights.VisionSubsystem;
+import frc.robot.pivot.ManuallyPivotCommand;
+import frc.robot.pivot.PivotSubsystem;
+import frc.robot.pivot.ResetAtHardstopCommand;
+import frc.robot.shooter.ShooterSubsystem;
 import frc.robot.swerve.CommandSwerveDrivetrain;
 import frc.robot.swerve.Telemetry;
 import frc.robot.swerve.TunerConstants;
 import frc.robot.constants.Constants.ControllerConstants;
 import frc.robot.constants.Constants.ShuffleboardTabNames;
 import frc.robot.constants.LimelightConstants.DetectionConstants;
-import frc.robot.auto.DriveToNoteCommand;
 import frc.robot.constants.Positions;
+import frc.robot.utilities.CommandGenerators;
 
 public class RobotContainer {
     // Thread-safe singleton design pattern.
     private static volatile RobotContainer instance;
     private static Object mutex = new Object();
-
 
     public static RobotContainer getInstance() {
         RobotContainer result = instance;
@@ -58,7 +63,11 @@ public class RobotContainer {
     private final SendableChooser<Command> autoChooser;
     // Position chooser
     private final SendableChooser<PositionInitialization> positionChooser = new SendableChooser<PositionInitialization>();
-    private final ShuffleboardLayout layout = Shuffleboard.getTab(ShuffleboardTabNames.DEFAULT).getLayout("SwerveSubsystem", BuiltInLayouts.kList);
+    private final ShuffleboardLayout layout = Shuffleboard.getTab(ShuffleboardTabNames.DEFAULT)
+        .getLayout("SwerveSubsystem", BuiltInLayouts.kList)
+        .withProperties(Map.of("Number of columns", 1, "Number of rows", 2, "Label position", "TOP"))
+        .withSize(2, 3)
+        .withPosition(0, 4);
 
     // Instance of the controllers used to drive the robot
     private CommandXboxController driverController;
@@ -70,9 +79,10 @@ public class RobotContainer {
         this.operatorController = new CommandXboxController(ControllerConstants.OPERATOR_CONTROLLER_ID);
 
         configureDrivetrain(); // This is done separately because it works differently from other Subsystems
+        configurePositionChooser();
 
         initializeSubsystems();
-        // Register named commands for pathplanner (always do this after subsystem initialization)
+        // Register named commands for Pathplanner (always do this after subsystem initialization)
         registerNamedCommands();
 
         configureDriverBindings();
@@ -82,7 +92,8 @@ public class RobotContainer {
         Shuffleboard.getTab(ShuffleboardTabNames.DEFAULT)
             .add("Auto Chooser", autoChooser)
             .withWidget(BuiltInWidgets.kComboBoxChooser)
-            .withSize(6, 1);
+            .withSize(4, 3)
+            .withPosition(2, 4);
     }
 
     /**
@@ -140,9 +151,11 @@ public class RobotContainer {
         final SwerveRequest.FieldCentricFacingAngle fieldCentricFacingAngle_withDeadband = new CommandSwerveDrivetrain.FieldCentricFacingAngle_PID_Workaround()
             .withDeadband(reasonableMaxSpeed * ControllerConstants.DEADBAND)
             .withDriveRequestType(DriveRequestType.OpenLoopVoltage);
+        Command intakeCommand = CommandGenerators.IntakeCommand();
         
-        this.driverController.leftBumper().whileTrue(
-            drivetrain.applyRequest(() -> {
+        // TODO ? Separate Command that will store Note position and work similarly to AutoShootCommand() and DriveToNoteCommand ?
+        this.driverController.leftBumper()
+            .whileTrue(drivetrain.applyRequest(() -> {
                 boolean topSpeed = leftTrigger.getAsBoolean();
                 boolean fineControl = rightTrigger.getAsBoolean();
 
@@ -155,13 +168,22 @@ public class RobotContainer {
 
                 Pose2d[] notePoses = DetectionSubsystem.getInstance().getRecentNotePoses();
                 Translation2d botTranslation = drivetrain.getState().Pose.getTranslation();
+
+                if (IntakeSubsystem.getInstance().backLaserHasNote() && !IntakeSubsystem.getInstance().frontLaserHasNote()) {
+                    intakeCommand.schedule();
+                }
                 
                 // If no Notes OR Note further than {@link DetectionConstants#MAX_NOTE_DISTANCE_DRIVING} meters, drive normally.
                 if (notePoses.length == 0
                     || notePoses[0].getTranslation().getDistance(botTranslation)
                         >= DetectionConstants.MAX_NOTE_DISTANCE_DRIVING
+                    || drivetrain.getState().Pose.getTranslation().getDistance(notePoses[0].getTranslation())
+                        <= 1
                 ) {
-                    System.out.println("IntakeSubsystem Enabled (no note)");
+                    if (!intakeCommand.isScheduled()) {
+                        intakeCommand.schedule();
+                    }
+                    
                     return fieldCentricDrive_withDeadband
                         .withVelocityX(velocityX)
                         .withVelocityY(velocityY)
@@ -174,11 +196,12 @@ public class RobotContainer {
                 else {
                     Pose2d notePose = notePoses[0];
                     
-                    // If within two meters, enable the intake
-                    if (drivetrain.getState().Pose.getTranslation()
-                        .getDistance(notePose.getTranslation()) <= 1
+                    // If within one meter, enable the intake
+                    if (drivetrain.getState().Pose.getTranslation().getDistance(notePose.getTranslation())
+                                <= 1
+                            && !intakeCommand.isScheduled()
                     ) {
-                        System.out.println("IntakeSubsystem Enabled (close to note)");
+                        intakeCommand.schedule();
                     }
 
                     Rotation2d targetRotation = new Rotation2d(Math.atan2(
@@ -191,51 +214,10 @@ public class RobotContainer {
                         .withVelocityY(velocityY)
                         .withTargetDirection(targetRotation);
                 }
-            })
-        );
-        
-        this.driverController.rightBumper().whileTrue(
-            drivetrain.applyRequest(() -> {
-                boolean topSpeed = leftTrigger.getAsBoolean();
-                boolean fineControl = rightTrigger.getAsBoolean();
-
-                double velocityX = -driverController.getLeftY()
-                    * (topSpeed ? MaxSpeed : reasonableMaxSpeed)
-                    * (fineControl ? ControllerConstants.FINE_CONTROL_MULT : 1);
-                double velocityY = -driverController.getLeftX()
-                    * (topSpeed ? MaxSpeed : reasonableMaxSpeed)
-                    * (fineControl ? ControllerConstants.FINE_CONTROL_MULT : 1);
-
-                Translation2d speakerTranslation;
-                try {
-                    speakerTranslation = Positions.getSpeakerTarget().toTranslation2d();
-                }
-                catch (RuntimeException e) {
-                    System.err.println("Alliance is empty ; cannot target SPEAKER.");
-                    return fieldCentricDrive_withDeadband
-                        .withVelocityX(velocityX)
-                        .withVelocityY(velocityY)
-                        .withRotationalRate(
-                            -driverController.getRightX()
-                            * (topSpeed ? MaxAngularRate : reasonableMaxAngularRate)
-                            * (fineControl ? ControllerConstants.FINE_CONTROL_MULT : 1)
-                        );
-                }
-
-                Translation2d botTranslation = drivetrain.getState().Pose.getTranslation();
-                Rotation2d targetRotation = new Rotation2d(
-                    Math.atan2(
-                        speakerTranslation.getY() - botTranslation.getY(),
-                        speakerTranslation.getX() - botTranslation.getX() 
-                    ) + Math.PI // Face with shooter, which is the back of the bot
-                );
-                
-                return fieldCentricFacingAngle_withDeadband
-                    .withVelocityX(velocityX)
-                    .withVelocityY(velocityY)
-                    .withTargetDirection(targetRotation);
-            })
-        );
+            }))
+            .onFalse(Commands.runOnce(
+                () -> CommandScheduler.getInstance().cancel(intakeCommand)
+            ));
 
         // Useful for testing
         // final SwerveRequest.SwerveDriveBrake brake = new SwerveRequest.SwerveDriveBrake();
@@ -285,72 +267,68 @@ public class RobotContainer {
                 )
             );
         }
-
-        // Burger
-        this.driverController.start().onTrue(drivetrain.runOnce(() -> drivetrain.seedFieldRelative()));
-        // Double Rectangle
-        this.driverController.back().onTrue(drivetrain.runOnce(() -> {
-            Pose2d estimatedPose = VisionSubsystem.getInstance().getEstimatedPose();
-            if (!estimatedPose.equals(new Pose2d())) {
-                drivetrain.seedFieldRelative(estimatedPose);
-            }
-        }));
         
         drivetrain.registerTelemetry(logger::telemeterize);
+    }
 
+    /** Configures the PositionInitialization chooser for the odometry. */
+    private void configurePositionChooser() {
         // Position chooser
         for (PositionInitialization position : PositionInitialization.values()) {
             this.positionChooser.addOption(position.name(), position);
-            if (position == PositionInitialization.LIMELIGHT) {
+            if (position == PositionInitialization.MIDDLE) {
                 this.positionChooser.setDefaultOption(position.name(), position);
             }
         }
         
         this.positionChooser.onChange((PositionInitialization position) ->
-            drivetrain.seedFieldRelative(Positions.getStartingPose(position))
+            CommandSwerveDrivetrain.getInstance().seedFieldRelative(Positions.getStartingPose(position))
         );
 
         this.layout.add("Starting Position", this.positionChooser)
-            .withWidget(BuiltInWidgets.kComboBoxChooser);
+            .withWidget(BuiltInWidgets.kComboBoxChooser)
+            .withPosition(0, 0);
         // Re-set chosen position.
-        this.layout.add("Set Starting Position",
+        this.layout.add(
+            "Set Starting Position",
             Commands.runOnce(
-                () -> drivetrain.seedFieldRelative(Positions.getStartingPose(this.positionChooser.getSelected()))
+                () -> CommandSwerveDrivetrain.getInstance()
+                    .seedFieldRelative(Positions.getStartingPose(this.positionChooser.getSelected()))
             ).ignoringDisable(true).withName("Set Again"))
-            .withWidget(BuiltInWidgets.kCommand);
+            .withWidget(BuiltInWidgets.kCommand)
+            .withPosition(0, 1);
     }
 
-    /** Creates instances of each subsystem so periodic runs */
+    /** Creates instances of each subsystem so periodic always runs. */
     private void initializeSubsystems() {
         VisionSubsystem.getInstance();
         DetectionSubsystem.getInstance();
+
+        IntakeSubsystem.getInstance();
+        PivotSubsystem.getInstance();
+        ShooterSubsystem.getInstance();
     }
 
     /** Register all NamedCommands for PathPlanner use */
     private void registerNamedCommands() {
-        
+        NamedCommands.registerCommand("AutonIntakeNote", CommandGenerators.AutonIntakeNoteCommand());
+        NamedCommands.registerCommand("AutoShootNoteStaticCommand", CommandGenerators.AutoShootNoteStaticCommand());
     }
 
-    /** Configures the button bindings of the driver controller */
+    /** Configures the button bindings of the driver controller. */
     private void configureDriverBindings() {
-        // Cancel all currently scheduled commands
-        this.driverController.b().onTrue(Commands.runOnce(() -> {
-            CommandScheduler.getInstance().cancelAll();
-        }));
+        this.driverController.b().onTrue(CommandGenerators.CancelAllCommands());
 
         /*
          * POV, joysticks, and start/back are all used in configureDrivetrain()
          *           Left joystick : Translational movement
          *          Right joystick : Rotational movement
-         *          Start / Burger : Reset heading
-         * Back / Double Rectangle : Reset position to LL data (if not empty)
          *    POV (overrides joys) : Directional movement -- 0.25 m/s
          */
-        // this.driverController.back().onTrue(
-        //     CommandSwerveDrivetrain.getInstance().runOnce(() -> CommandSwerveDrivetrain.getInstance().seedFieldRelative(
-        //         new Pose2d(new Translation2d(5, 5), new Rotation2d())
-        //     ))
-        // );
+        // Burger
+        this.driverController.start().onTrue(CommandGenerators.SetForwardDirectionCommand());
+        // Double Rectangle
+        this.driverController.back().onTrue(CommandGenerators.ResetPoseUsingLimelightCommand());
         /*
          * Triggers are also used in configureDrivetrain()
          *      Left Trigger > 0.5 : Use TOP SPEED for joysticks
@@ -359,31 +337,78 @@ public class RobotContainer {
          *                           Use ROBOT CENTRIC for POV 
          */
         /*
-         * Bumpers are also used in configureDrivetrain()
          *      Left bumper (hold) : Targets nearest Note to rotate around.
          *                           Enables intake if no note is seen or if
          *                           within 2 meters of the nearest one.
-         *     Right bumper (hold) : Targets SPEAKER to rotate around.
-         *                           Does NOT shoot (operator's job).
+         *                           Freely rotate within 1 meter.
          */
-        this.driverController.x().onTrue(new DriveToNoteCommand());
+        this.driverController.rightBumper()
+            .whileTrue(CommandGenerators.AutoShootNoteMovementCommand())
+            .onFalse(CommandGenerators.PivotToIdlePositionCommand());
+        
+        this.driverController.y()
+            .whileTrue(CommandGenerators.AutoShootNoteStaticCommand())
+            .onFalse(CommandGenerators.PivotToIdlePositionCommand());
+        // Drive to a note and intake
+        this.driverController.x().onTrue(CommandGenerators.AutonIntakeNoteCommand());
+        // Manual intake
+        this.driverController.a().whileTrue(CommandGenerators.IntakeCommand());
     }
 
-    /** Configures the button bindings of the driver controller */
+    /** Configures the button bindings of the operator controller. */
     private void configureOperatorBindings() {
-        // Unused while building and testing new kraken swerve drive
+        operatorController.b().onTrue(CommandGenerators.CancelAllCommands());
+
+        PivotSubsystem.getInstance().setDefaultCommand(new ManuallyPivotCommand(
+            () -> operatorController.getRightTriggerAxis(),
+            () -> operatorController.getLeftTriggerAxis(),
+            false
+        ));
+        operatorController.a().onTrue(new ResetAtHardstopCommand(false).withTimeout(5));
+
+        operatorController.pov(0)
+            .whileTrue(PivotSubsystem.getInstance().run(
+                () -> PivotSubsystem.getInstance().motionMagicPosition(90)
+            ));
+        operatorController.pov(180)
+            .whileTrue(PivotSubsystem.getInstance().run(
+                () -> PivotSubsystem.getInstance().motionMagicPosition(5)
+            ));
+
+        // Testing shooting
+        operatorController.pov(90).whileTrue(CommandGenerators.ManualIntakeCommand());
+        operatorController.pov(270).whileTrue(CommandGenerators.ManuallyReverseIntakeCommand());
         
-        // Cancel all currently scheduled commands
-        // operatorController.b().onTrue(Commands.runOnce(() -> {
-        //     CommandScheduler.getInstance().cancelAll();
-        // }));
+        operatorController.rightBumper()
+            .whileTrue(CommandGenerators.ShootSpeakerUpCloseCommand())
+            .onFalse(CommandGenerators.PivotToIdlePositionCommand());
+        
+        operatorController.leftBumper()
+            .whileTrue(CommandGenerators.ShootAmpUpCloseCommand())
+            .onFalse(CommandGenerators.PivotToIdlePositionCommand());
+    }
+
+    /**
+     * Gets the instance of the driverController.
+     * @return The driver controller.
+     */
+    public CommandXboxController getDriverController() {
+        return this.driverController;
+    }
+
+    /**
+     * Gets the instance of the operatorController.
+     * @return The operator controller.
+     */
+    public CommandXboxController getOperatorController() {
+        return this.operatorController;
     }
 
     /**
      * Use this to pass the autonomous command to the main {@link Robot} class.
-     * @return The command to run in autonomous
+     * @return The command to run in autonomous.
      */
     public Command getAutonomousCommand() {
-        return autoChooser.getSelected();
+        return this.autoChooser.getSelected();
     }
 }

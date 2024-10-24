@@ -148,7 +148,7 @@ public class CommandSwerveDrivetrain extends SwerveDrivetrain implements Subsyst
             super();
             this.HeadingController = Constants.HeadingControllerFacingAngle;
             this.HeadingController.enableContinuousInput(0, 2 * Math.PI);
-            this.HeadingController.setTolerance(Units.degreesToRadians(1));
+            this.HeadingController.setTolerance(Units.degreesToRadians(0.25));
         }
     }
 }

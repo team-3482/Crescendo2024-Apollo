@@ -11,6 +11,7 @@ import edu.wpi.first.math.geometry.Pose2d;
 import edu.wpi.first.math.geometry.Rotation2d;
 import edu.wpi.first.math.geometry.Translation2d;
 import edu.wpi.first.math.geometry.Translation3d;
+import edu.wpi.first.math.util.Units;
 import edu.wpi.first.wpilibj.DriverStation;
 import frc.robot.limelights.VisionSubsystem;
 
@@ -30,10 +31,13 @@ public final class Positions {
         ;
     }
 
+    /** SPEAKER height in meters used for calculating pivot angles. */
+    public static final double SPEAKER_HEIGHT = Units.inchesToMeters(85);
+
     /** SPEAKER positions to target */
     private static final Map<DriverStation.Alliance, Translation3d> SPEAKER_TARGET = Map.ofEntries(
-        Map.entry(DriverStation.Alliance.Blue, new Translation3d(0, 5.55, 3)),
-        Map.entry(DriverStation.Alliance.Red, new Translation3d(16.5, 5.55, 3))
+        Map.entry(DriverStation.Alliance.Blue, new Translation3d(0, 5.55, Positions.SPEAKER_HEIGHT)),
+        Map.entry(DriverStation.Alliance.Red, new Translation3d(16.5, 5.55, Positions.SPEAKER_HEIGHT))
     );
 
     /** AMP positions to line up to */
@@ -49,13 +53,13 @@ public final class Positions {
     /** Initial bot positions used for initializing odometry, blue-alliance relative. */
     private static final Map<DriverStation.Alliance, Map<PositionInitialization, Pose2d>> STARTING_POSITIONS = Map.ofEntries(
         Map.entry(DriverStation.Alliance.Blue, Map.ofEntries(
-            Map.entry(PositionInitialization.TOP, new Pose2d(new Translation2d(0.75, 6.66), Rotation2d.fromDegrees(240))),
-            Map.entry(PositionInitialization.MIDDLE, new Pose2d(new Translation2d(1.34, 5.55), Rotation2d.fromDegrees(180))),
-            Map.entry(PositionInitialization.BOTTOM, new Pose2d(new Translation2d(0.75, 4.45), Rotation2d.fromDegrees(120))))),
+            Map.entry(PositionInitialization.TOP, new Pose2d(new Translation2d(0.75, 6.66), Rotation2d.fromDegrees(60))),
+            Map.entry(PositionInitialization.MIDDLE, new Pose2d(new Translation2d(1.34, 5.55), Rotation2d.fromDegrees(0))),
+            Map.entry(PositionInitialization.BOTTOM, new Pose2d(new Translation2d(0.75, 4.45), Rotation2d.fromDegrees(300))))),
         Map.entry(DriverStation.Alliance.Red, Map.ofEntries(
-            Map.entry(PositionInitialization.TOP, new Pose2d(new Translation2d(15.8, 6.66), Rotation2d.fromDegrees(300))),
-            Map.entry(PositionInitialization.MIDDLE, new Pose2d(new Translation2d(15.2, 5.55), Rotation2d.fromDegrees(0))),
-            Map.entry(PositionInitialization.BOTTOM, new Pose2d(new Translation2d(15.8, 4.50), Rotation2d.fromDegrees(60)))))
+            Map.entry(PositionInitialization.TOP, new Pose2d(new Translation2d(15.8, 6.66), Rotation2d.fromDegrees(120))),
+            Map.entry(PositionInitialization.MIDDLE, new Pose2d(new Translation2d(15.2, 5.55), Rotation2d.fromDegrees(180))),
+            Map.entry(PositionInitialization.BOTTOM, new Pose2d(new Translation2d(15.8, 4.50), Rotation2d.fromDegrees(240)))))
     );
 
     /**

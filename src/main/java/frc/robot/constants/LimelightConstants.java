@@ -52,7 +52,7 @@ public final class LimelightConstants {
          * Note data older than this time in seconds will be discarded.
          * @see {@link DetectionSubsystem#processRecentDetectionDatas()}
          */
-        public static final double STALE_DATA_CUTOFF = 1.5;
+        public static final double STALE_DATA_CUTOFF = 0.5;
         /** Whether or not the DetectionSubsystem will publish the top 3 most recent Notes. */
         public static final boolean PUBLISH_NOTE_POSES = true;
         /**

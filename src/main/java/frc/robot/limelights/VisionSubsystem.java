@@ -85,11 +85,13 @@ public class VisionSubsystem extends SubsystemBase {
             Shuffleboard.getTab(ShuffleboardTabNames.DEFAULT)
                 .add(LimelightConstants.FRONT_APRIL_TAG_LL, frontLLCamera)
                 .withWidget(BuiltInWidgets.kCameraStream)
-                .withProperties(Map.of("Show Crosshair", false, "Show Controls", false));
+                .withProperties(Map.of("Show Crosshair", false, "Show Controls", false))
+                .withPosition(0, 0);
             Shuffleboard.getTab(ShuffleboardTabNames.DEFAULT)
                 .add(LimelightConstants.BACK_APRIL_TAG_LL, backLLCamera)
                 .withWidget(BuiltInWidgets.kCameraStream)
-                .withProperties(Map.of("Show Crosshair", false, "Show Controls", false));
+                .withProperties(Map.of("Show Crosshair", false, "Show Controls", false))
+                .withPosition(6, 0);
         }
 
         this.notifier = new Notifier(() -> notifierLoop());
@@ -196,14 +198,14 @@ public class VisionSubsystem extends SubsystemBase {
         // Upon startup, these may still be null, so it is important to check for them or robot code could crash.
         // Also, ignore data that is older than 1 second.
         double timestampNow = Timer.getFPGATimestamp();
-        if (frontLLDataMT2 == null) {
+        if (frontLLDataMT2 == null && this.limelightDatas[0] != null) {
             frontLLDataMT2 = this.limelightDatas[0].MegaTag2;
             
             if (frontLLDataMT2 != null && Math.abs(frontLLDataMT2.timestampSeconds - timestampNow) > 1) {
                 frontLLDataMT2 = null;
             }
         }
-        if (backLLDataMT2 == null) {
+        if (backLLDataMT2 == null && this.limelightDatas[1] != null) {
             backLLDataMT2 = this.limelightDatas[1].MegaTag2;
             
             if (backLLDataMT2 != null && Math.abs(backLLDataMT2.timestampSeconds - timestampNow) > 1) {

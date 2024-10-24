@@ -15,14 +15,13 @@ import edu.wpi.first.math.geometry.Translation2d;
 import edu.wpi.first.math.util.Units;
 import edu.wpi.first.wpilibj.Timer;
 import edu.wpi.first.wpilibj2.command.Command;
-import edu.wpi.first.wpilibj2.command.CommandScheduler;
 import frc.robot.limelights.DetectionSubsystem;
 import frc.robot.swerve.CommandSwerveDrivetrain;
 
 /**
  * A command that wraps a PathPlanner command that
  * paths to the nearest visible note and turns to face it.
- * Accounts for increased accuraccy with decreased distance.
+ * Accounts for increased accuracy with decreased distance.
  */
 public class DriveToNoteCommand extends Command {
     private final PathConstraints constraints = new PathConstraints(
@@ -30,49 +29,31 @@ public class DriveToNoteCommand extends Command {
         Units.degreesToRadians(720), Units.degreesToRadians(540)
     );
     
-    private Command pathingCommand;
     private Timer timer;
+    private Command pathingCommand;
     private Pose2d currentNotePose;
-    private boolean finished;
 
     /** Creates a new DriveToNoteCommand. */
     public DriveToNoteCommand() {
         setName("DriveToNoteCommand");
         this.timer = new Timer();
-        // No requirements, because PathPlanner's Command requires the DriveTrain
-        // This wrapper is only useful for creating the PathPlanner Path
-        addRequirements();
+
+        // Use addRequirements() here to declare subsystem dependencies.
+        addRequirements(CommandSwerveDrivetrain.getInstance());
     }
 
     // Called when the command is initially scheduled.
     @Override
     public void initialize() {
-        this.finished = false;
+        this.pathingCommand = null;
         this.timer.restart();
-        
-        Pose2d[] notePoses = DetectionSubsystem.getInstance().getRecentNotePoses();
-        if (notePoses.length == 0) {
-            this.finished = true;
-            return;
-        }
-
-        this.currentNotePose = notePoses[0];
-        
-        this.pathingCommand = generatePath(this.currentNotePose);
-        CommandScheduler.getInstance().schedule(this.pathingCommand);
     }
 
     // Called every time the scheduler runs while the command is scheduled.
     @Override
     public void execute() {
-        if (!this.pathingCommand.isScheduled() || this.finished) return;
-        
-        // Run this check every 5 robot cycles / 3 Detection cycles
-        if (this.timer.hasElapsed(0.1)) {
-            this.timer.restart();
-        }
-        else {
-            return;
+        if (this.pathingCommand != null) {    
+            this.pathingCommand.execute();
         }
 
         Pose2d[] notePoses = DetectionSubsystem.getInstance().getRecentNotePoses();
@@ -90,20 +71,19 @@ public class DriveToNoteCommand extends Command {
             return;
         }
         // If deviated over 15 cm from the original Note, repath
-        else if (this.currentNotePose.getTranslation().getDistance(newNotePose.getTranslation()) >= 0.15) {
+        else if (this.pathingCommand == null || this.currentNotePose.getTranslation().getDistance(newNotePose.getTranslation()) >= 0.15) {
             this.currentNotePose = newNotePose;
-            
-            CommandScheduler.getInstance().cancel(this.pathingCommand);
+            // NOTE : The first time this runs, it takes up to 250 ms to run this method for some strange reason.
             this.pathingCommand = generatePath(this.currentNotePose);
-            CommandScheduler.getInstance().schedule(this.pathingCommand);
+            this.pathingCommand.initialize();
         }
     }
 
     // Called once the command ends or is interrupted.
     @Override
     public void end(boolean interrupted) {
-        if (this.pathingCommand != null && this.pathingCommand.isScheduled()) {
-            CommandScheduler.getInstance().cancel(this.pathingCommand);
+        if (this.pathingCommand != null) {
+            this.pathingCommand.end(interrupted);
         }
         this.timer.stop();
     }
@@ -111,7 +91,7 @@ public class DriveToNoteCommand extends Command {
     // Returns true when the command should end.
     @Override
     public boolean isFinished() {
-        return this.finished || !this.pathingCommand.isScheduled();
+        return this.pathingCommand == null || this.pathingCommand.isFinished();
     }
 
     /**
