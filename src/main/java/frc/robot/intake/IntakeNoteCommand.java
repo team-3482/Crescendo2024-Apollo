@@ -92,21 +92,15 @@ public class IntakeNoteCommand extends Command {
 
         Pose2d[] notePoses = DetectionSubsystem.getInstance().getRecentNotePoses();
         Translation2d botTranslation = CommandSwerveDrivetrain.getInstance().getState().Pose.getTranslation();
-
-        if (IntakeSubsystem.getInstance().backLaserHasNote()
-            && !IntakeSubsystem.getInstance().frontLaserHasNote()
-        ) {
-            this.executeIntakeCommand = true;
-        }
         
         // If no Notes OR Note further than {@link DetectionConstants#MAX_NOTE_DISTANCE_DRIVING} meters, drive normally and intake.
         if (notePoses.length == 0
             || botTranslation.getDistance(notePoses[0].getTranslation())
                 >= DetectionConstants.MAX_NOTE_DISTANCE_DRIVING
-            // || (
-            //     this.lastNotePose == null
-            //     && botTranslation.getDistance(notePoses[0].getTranslation()) <= 1
-            // )
+            || (
+                this.lastNotePose == null
+                && botTranslation.getDistance(notePoses[0].getTranslation()) <= 1
+            )
         ) {
             final SwerveRequest.FieldCentric fieldCentricDrive_withDeadband = new SwerveRequest.FieldCentric()
                 .withDeadband(reasonableMaxSpeed * ControllerConstants.DEADBAND)
@@ -135,7 +129,7 @@ public class IntakeNoteCommand extends Command {
                 .withDriveRequestType(DriveRequestType.OpenLoopVoltage);
             
             // If within one meter, enable the intake and stop updating note pose because it might be faulty data.
-            if (this.lastNotePose != null && botTranslation.getDistance(notePoses[0].getTranslation()) <= 1) {
+            if (this.lastNotePose != null && botTranslation.getDistance(this.lastNotePose.getTranslation()) <= 1.5) {
                 if (!this.executeIntakeCommand) {
                     this.intakeCommand.initialize();
                     this.executeIntakeCommand = true;

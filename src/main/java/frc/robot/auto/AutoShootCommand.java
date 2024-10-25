@@ -114,7 +114,6 @@ public class AutoShootCommand extends Command {
         ShotVector botVector = new ShotVector(botSpeeds.vxMetersPerSecond, botSpeeds.vyMetersPerSecond, 0);
         this.idealShotVector = calculateInitialShotVector().plus(botVector);
 
-        
         CommandSwerveDrivetrain.getInstance().setControl(
             getDrivingControl(Rotation2d.fromDegrees(this.idealShotVector.getYaw()))
         );

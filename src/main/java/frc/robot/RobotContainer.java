@@ -80,9 +80,6 @@ public class RobotContainer {
         // Register named commands for Pathplanner (always do this after subsystem initialization)
         registerNamedCommands();
 
-        configureDriverBindings();
-        configureOperatorBindings();
-
         this.autoChooser = AutoBuilder.buildAutoChooser(); // Default auto will be Commands.none()
         Shuffleboard.getTab(ShuffleboardTabNames.DEFAULT)
             .add("Auto Chooser", autoChooser)
@@ -312,7 +309,7 @@ public class RobotContainer {
     }
 
     /** Configures the button bindings of the driver controller. */
-    private void configureDriverBindings() {
+    public void configureDriverBindings() {
         this.driverController.b().onTrue(CommandGenerators.CancelAllCommands());
 
         /*
@@ -338,11 +335,6 @@ public class RobotContainer {
          *                           within 2 meters of the nearest one.
          *                           Freely rotate within 1 meter.
          */
-        // TODO : Test CenterAndIntakeNoteCommand()
-        // - Start with note really close up
-        // - Start with note in back laser but not front laser
-        // - Start with note at reasonable distance
-        // - Start with note far away
         this.driverController.leftBumper()
             .whileTrue(CommandGenerators.CenterAndIntakeNoteCommand());
         this.driverController.rightBumper()
@@ -359,7 +351,7 @@ public class RobotContainer {
     }
 
     /** Configures the button bindings of the operator controller. */
-    private void configureOperatorBindings() {
+    public void configureOperatorBindings() {
         this.operatorController.b().onTrue(CommandGenerators.CancelAllCommands());
 
         PivotSubsystem.getInstance().setDefaultCommand(new ManuallyPivotCommand(

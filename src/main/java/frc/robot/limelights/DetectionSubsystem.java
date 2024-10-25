@@ -191,7 +191,7 @@ public class DetectionSubsystem extends SubsystemBase {
      * @return The recently calculated note positions.
      * @apiNote Uses data up to {@link DetectionConstants#STALE_DATA_CUTOFF} seconds old.
      */
-    public synchronized Pose2d[] getRecentNotePoses() {
+    public Pose2d[] getRecentNotePoses() {
         Pose2d[] recentNotePoses = new Pose2d[this.recentFilteredTranslations.size()];
         
         for (int i = 0; i < recentNotePoses.length; i++) {
