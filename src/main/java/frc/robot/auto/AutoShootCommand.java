@@ -37,7 +37,8 @@ public class AutoShootCommand extends Command {
 
     private Translation3d speakerTranslation3d;
     private ShotVector idealShotVector;
-    private boolean allowMovement;
+    private final boolean allowMovement;
+    private final boolean checkDistance;
     
     private boolean noSpeaker;
     private boolean withinDistance;
@@ -48,8 +49,12 @@ public class AutoShootCommand extends Command {
      * @param xSupplier - Supplier for x robot movement from -1.0 to 1.0.
      * @param ySupplier - Supplier for y robot movement from -1.0 to 1.0.
      * @param allowMovement - Whether to allow driver input while shooting.
+     * @param checkDistance - Whether or not to check the distance or allow any distance shooting.
      */
-    private AutoShootCommand(Supplier<Double> xSupplier, Supplier<Double> ySupplier, boolean allowMovement) {
+    private AutoShootCommand(
+        Supplier<Double> xSupplier, Supplier<Double> ySupplier,
+        boolean allowMovement, boolean checkDistance
+    ) {
         setName("AutoShootCommand");
 
         this.xSupplier = xSupplier;
@@ -57,6 +62,8 @@ public class AutoShootCommand extends Command {
         this.maxSpeed = ShootingConstants.MAX_MOVEMENT_SPEED;
         
         this.allowMovement = allowMovement;
+        this.checkDistance = checkDistance;
+
         this.idealShotVector = new ShotVector();
         this.timer = new Timer();
 
@@ -69,18 +76,22 @@ public class AutoShootCommand extends Command {
         );
     }
 
-    /** Creates a new AutoShootCommand that does not allow movement. */
-    public AutoShootCommand() {
-        this(null, null, false);
+    /**
+     * Creates a new AutoShootCommand that does not allow movement.
+     * @param checkDistance - Whether or not to check the distance or allow any distance shooting.
+     */
+    public AutoShootCommand(boolean checkDistance) {
+        this(null, null, false, checkDistance);
     }
 
     /**
      * Creates a new AutoShootCommand that allows movement.
      * @param xSupplier - Supplier for x robot movement from -1.0 to 1.0.
      * @param ySupplier - Supplier for y robot movement from -1.0 to 1.0.
+     * @apiNote Limits the distance for shooting to a valid distance.
      */
     public AutoShootCommand(Supplier<Double> xSupplier, Supplier<Double> ySupplier) {
-        this(xSupplier, ySupplier, true);
+        this(xSupplier, ySupplier, true, true);
     }
 
     // Called when the command is initially scheduled.
@@ -168,7 +179,7 @@ public class AutoShootCommand extends Command {
         Translation2d botTranslation = botState.Pose.getTranslation();
         double distance = botTranslation.getDistance(this.speakerTranslation3d.toTranslation2d());
 
-        if (distance > ShootingConstants.MAX_SHOOTING_DISTANCE) {
+        if (this.checkDistance && distance > ShootingConstants.MAX_SHOOTING_DISTANCE) {
             System.err.println(String.format(
                 "AutoShootCommand | Too far from SPEAKER. (%.2f > %.2f)",
                 distance, ShootingConstants.MAX_SHOOTING_DISTANCE

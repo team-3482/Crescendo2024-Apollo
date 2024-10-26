@@ -103,10 +103,20 @@ public final class CommandGenerators {
 
     /**
      * A command that shoots a note without allowing robot movement.
+     * Checks for a valid distance to shoot from.
      * @return The command.
      */
-    public static Command AutoShootNoteStaticCommand() {
-        return new AutoShootCommand();
+    public static Command AutoShootNoteStaticCheckDistanceCommand() {
+        return new AutoShootCommand(true);
+    }
+
+    /**
+     * A command that shoots a note without allowing robot movement.
+     * Shoots from any distance..
+     * @return The command.
+     */
+    public static Command AutoShootNoteStaticAnyDistanceCommand() {
+        return new AutoShootCommand(false);
     }
 
     /**

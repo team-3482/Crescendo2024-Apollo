@@ -101,7 +101,16 @@ public class IntakeNoteCommand extends Command {
                 this.lastNotePose == null
                 && botTranslation.getDistance(notePoses[0].getTranslation()) <= 1
             )
+            || (
+                this.lastNotePose != null
+                && botTranslation.getDistance(this.lastNotePose.getTranslation()) <= 0.5
+            )
         ) {
+            if (this.lastNotePose != null
+                && botTranslation.getDistance(this.lastNotePose.getTranslation()) <= 0.5
+            ) {
+                this.lastNotePose = null;
+            }
             final SwerveRequest.FieldCentric fieldCentricDrive_withDeadband = new SwerveRequest.FieldCentric()
                 .withDeadband(reasonableMaxSpeed * ControllerConstants.DEADBAND)
                 .withRotationalDeadband(reasonableMaxAngularRate * ControllerConstants.DEADBAND) // Add a deadband

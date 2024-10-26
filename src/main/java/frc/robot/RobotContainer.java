@@ -137,81 +137,6 @@ public class RobotContainer {
             }).ignoringDisable(true)
         );
 
-        /*
-        // Toggle intake mode
-        // Faces closest note in vision and enables intake within 2 meters,
-        // or drives normally with intake enabled when no notes are found.
-        final SwerveRequest.FieldCentricFacingAngle fieldCentricFacingAngle_withDeadband = new CommandSwerveDrivetrain.FieldCentricFacingAngle_PID_Workaround()
-            .withDeadband(reasonableMaxSpeed * ControllerConstants.DEADBAND)
-            .withDriveRequestType(DriveRequestType.OpenLoopVoltage);
-        Command intakeCommand = CommandGenerators.IntakeCommand();
-        
-        this.driverController.leftBumper()
-            .whileTrue(drivetrain.applyRequest(() -> {
-                boolean topSpeed = leftTrigger.getAsBoolean();
-                boolean fineControl = rightTrigger.getAsBoolean();
-
-                double velocityX = -driverController.getLeftY()
-                    * (topSpeed ? MaxSpeed : reasonableMaxSpeed)
-                    * (fineControl ? ControllerConstants.FINE_CONTROL_MULT : 1);
-                double velocityY = -driverController.getLeftX()
-                    * (topSpeed ? MaxSpeed : reasonableMaxSpeed)
-                    * (fineControl ? ControllerConstants.FINE_CONTROL_MULT : 1);
-
-                Pose2d[] notePoses = DetectionSubsystem.getInstance().getRecentNotePoses();
-                Translation2d botTranslation = drivetrain.getState().Pose.getTranslation();
-
-                if (IntakeSubsystem.getInstance().backLaserHasNote() && !IntakeSubsystem.getInstance().frontLaserHasNote()) {
-                    intakeCommand.schedule();
-                }
-                
-                // If no Notes OR Note further than {@link DetectionConstants#MAX_NOTE_DISTANCE_DRIVING} meters, drive normally.
-                if (notePoses.length == 0
-                    || notePoses[0].getTranslation().getDistance(botTranslation)
-                        >= DetectionConstants.MAX_NOTE_DISTANCE_DRIVING
-                    || drivetrain.getState().Pose.getTranslation().getDistance(notePoses[0].getTranslation())
-                        <= 1
-                ) {
-                    if (!intakeCommand.isScheduled()) {
-                        intakeCommand.schedule();
-                    }
-                    
-                    return fieldCentricDrive_withDeadband
-                        .withVelocityX(velocityX)
-                        .withVelocityY(velocityY)
-                        .withRotationalRate(
-                            -driverController.getRightX()
-                            * (topSpeed ? MaxAngularRate : reasonableMaxAngularRate)
-                            * (fineControl ? ControllerConstants.FINE_CONTROL_MULT : 1)
-                        );
-                }
-                else {
-                    Pose2d notePose = notePoses[0];
-                    
-                    // If within one meter, enable the intake
-                    if (drivetrain.getState().Pose.getTranslation().getDistance(notePose.getTranslation())
-                                <= 1
-                            && !intakeCommand.isScheduled()
-                    ) {
-                        intakeCommand.schedule();
-                    }
-
-                    Rotation2d targetRotation = new Rotation2d(Math.atan2(
-                        notePose.getY() - botTranslation.getY(),
-                        notePose.getX() - botTranslation.getX()
-                    ));
-
-                    return fieldCentricFacingAngle_withDeadband
-                        .withVelocityX(velocityX)
-                        .withVelocityY(velocityY)
-                        .withTargetDirection(targetRotation);
-                }
-            }))
-            .onFalse(Commands.runOnce(
-                () -> CommandScheduler.getInstance().cancel(intakeCommand)
-            ));
-        */
-
         // Useful for testing
         // final SwerveRequest.SwerveDriveBrake brake = new SwerveRequest.SwerveDriveBrake();
         // final SwerveRequest.PointWheelsAt point = new SwerveRequest.PointWheelsAt();
@@ -305,7 +230,9 @@ public class RobotContainer {
     /** Register all NamedCommands for PathPlanner use */
     private void registerNamedCommands() {
         NamedCommands.registerCommand("AutonIntakeNote", CommandGenerators.AutonIntakeNoteCommand());
-        NamedCommands.registerCommand("AutoShootNoteStaticCommand", CommandGenerators.AutoShootNoteStaticCommand());
+        NamedCommands.registerCommand("AutoShootNoteStaticAnyDistance", CommandGenerators.AutoShootNoteStaticAnyDistanceCommand());
+        NamedCommands.registerCommand("ShootSpeakerUpClose", CommandGenerators.ShootSpeakerUpCloseCommand());
+        NamedCommands.registerCommand("Intake", CommandGenerators.IntakeCommand());
     }
 
     /** Configures the button bindings of the driver controller. */
@@ -342,7 +269,7 @@ public class RobotContainer {
             .onFalse(CommandGenerators.PivotToIdlePositionCommand());
         
         this.driverController.y()
-            .whileTrue(CommandGenerators.AutoShootNoteStaticCommand())
+            .whileTrue(CommandGenerators.AutoShootNoteStaticCheckDistanceCommand())
             .onFalse(CommandGenerators.PivotToIdlePositionCommand());
         // Drive to a note and intake
         this.driverController.x().onTrue(CommandGenerators.AutonIntakeNoteCommand());
