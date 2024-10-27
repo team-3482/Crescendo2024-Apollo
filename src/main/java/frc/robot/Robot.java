@@ -30,6 +30,7 @@ import frc.robot.utilities.BuildConstants; // If this file does not exist, build
  */
 public class Robot extends LoggedRobot {
     private Command auton;
+    // private PowerDistribution pdh; // TODO : PDH Voltage display
     
     /**
      * This function is run when the robot is first started up and should be used
@@ -72,6 +73,8 @@ public class Robot extends LoggedRobot {
         container.configureOperatorBindings();
 
         LiveWindow.disableAllTelemetry();
+
+        // this.pdh = new PowerDistribution(0, ModuleType.kRev); // TODO : PDH Voltage display
     }
 
     /**

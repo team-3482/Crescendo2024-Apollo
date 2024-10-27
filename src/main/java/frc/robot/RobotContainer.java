@@ -225,6 +225,12 @@ public class RobotContainer {
         IntakeSubsystem.getInstance();
         PivotSubsystem.getInstance();
         ShooterSubsystem.getInstance();
+
+        IntakeSubsystem.getInstance().setDefaultCommand(
+            IntakeSubsystem.getInstance().runOnce(
+                () -> IntakeSubsystem.getInstance().setSpeed(0)
+            )
+        );
     }
 
     /** Register all NamedCommands for PathPlanner use */
@@ -265,11 +271,11 @@ public class RobotContainer {
         this.driverController.leftBumper()
             .whileTrue(CommandGenerators.CenterAndIntakeNoteCommand());
         this.driverController.rightBumper()
-            .whileTrue(CommandGenerators.AutoShootNoteMovementCommand())
+            .whileTrue(CommandGenerators.AutoShootNoteStaticCheckDistanceCommand())
             .onFalse(CommandGenerators.PivotToIdlePositionCommand());
         
         this.driverController.y()
-            .whileTrue(CommandGenerators.AutoShootNoteStaticCheckDistanceCommand())
+            .whileTrue(CommandGenerators.AutoShootNoteMovementCommand())
             .onFalse(CommandGenerators.PivotToIdlePositionCommand());
         // Drive to a note and intake
         this.driverController.x().onTrue(CommandGenerators.AutonIntakeNoteCommand());
@@ -307,6 +313,14 @@ public class RobotContainer {
         
         this.operatorController.leftBumper()
             .whileTrue(CommandGenerators.ShootAmpUpCloseCommand())
+            .onFalse(CommandGenerators.PivotToIdlePositionCommand());
+            
+        this.operatorController.x()
+            .whileTrue(CommandGenerators.AutoPassNoteCommand())
+            .onFalse(CommandGenerators.PivotToIdlePositionCommand());
+            
+        this.operatorController.y()
+            .whileTrue(CommandGenerators.ManuallyPassNoteCommand())
             .onFalse(CommandGenerators.PivotToIdlePositionCommand());
     }
 

@@ -127,7 +127,7 @@ public class VisionSubsystem extends SubsystemBase {
 
             if (data.canTrustPosition) {
                 // Only trust positional data when adding this pose.
-                CommandSwerveDrivetrain.getInstance().setVisionMeasurementStdDevs(VecBuilder.fill(1, 1, 9999999));
+                CommandSwerveDrivetrain.getInstance().setVisionMeasurementStdDevs(VecBuilder.fill(0.7, 0.7, 9999999));
                 CommandSwerveDrivetrain.getInstance().addVisionMeasurement(
                     data.MegaTag2.pose,
                     data.MegaTag2.timestampSeconds

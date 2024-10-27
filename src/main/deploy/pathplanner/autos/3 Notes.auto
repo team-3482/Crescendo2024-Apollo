@@ -120,6 +120,12 @@
           }
         },
         {
+          "type": "path",
+          "data": {
+            "pathName": "3 Note P4"
+          }
+        },
+        {
           "type": "named",
           "data": {
             "name": "AutoShootNoteStaticAnyDistance"

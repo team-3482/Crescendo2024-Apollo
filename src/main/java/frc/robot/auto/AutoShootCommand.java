@@ -15,7 +15,9 @@ import edu.wpi.first.math.geometry.Translation2d;
 import edu.wpi.first.math.geometry.Translation3d;
 import edu.wpi.first.math.kinematics.ChassisSpeeds;
 import edu.wpi.first.math.util.Units;
+import edu.wpi.first.wpilibj.DriverStation;
 import edu.wpi.first.wpilibj.Timer;
+import edu.wpi.first.wpilibj.DriverStation.Alliance;
 import edu.wpi.first.wpilibj2.command.Command;
 import frc.robot.constants.Positions;
 import frc.robot.constants.Constants.ControllerConstants;
@@ -29,14 +31,17 @@ import frc.robot.swerve.CommandSwerveDrivetrain;
 import frc.robot.utilities.ShotVector;
 
 /** Shoots a Note autonomously. */
-public class AutoShootCommand extends Command {
+public class AutoShootCommand extends Command { // TODO : Delay before shooting
     // Driving while shooting
     private final Supplier<Double> xSupplier;
     private final Supplier<Double> ySupplier;
     private final double maxSpeed;
 
     private Translation3d speakerTranslation3d;
+    private boolean facingBlue;
+    
     private ShotVector idealShotVector;
+    
     private final boolean allowMovement;
     private final boolean checkDistance;
     
@@ -102,9 +107,10 @@ public class AutoShootCommand extends Command {
 
         try {
             this.speakerTranslation3d = Positions.getSpeakerTarget();
+            this.facingBlue = DriverStation.getAlliance().get() == Alliance.Blue;
         }
         catch (RuntimeException e) {
-            System.err.println("Alliance is empty ; cannot target SPEAKER.");
+            System.err.println("Alliance is empty ; cannot target SPEAKER or set rotation addition.");
             this.noSpeaker = true;
             return;
         }
@@ -128,7 +134,7 @@ public class AutoShootCommand extends Command {
         CommandSwerveDrivetrain.getInstance().setControl(
             getDrivingControl(Rotation2d.fromDegrees(this.idealShotVector.getYaw()))
         );
-            
+        
         if (!this.withinDistance) return;
             
         double distance = botState.Pose.getTranslation().getDistance(this.speakerTranslation3d.toTranslation2d());
@@ -137,8 +143,26 @@ public class AutoShootCommand extends Command {
         PivotSubsystem.getInstance().motionMagicPosition(adjustedPitch);
         ShooterSubsystem.getInstance().motionMagicVelocity(this.idealShotVector.getNormRps());
 
+        // System.out.printf(
+        //     "Yaw %.2f <= %.2f ; Pitch %.2f <= %.2f ; Velocity %.2f <= %.2f%n",
+        //     Math.min(
+        //         Math.abs(this.idealShotVector.getYaw() - botHeading + (this.facingBlue ? 0 : 180)),
+        //         360 - Math.abs(this.idealShotVector.getYaw() - botHeading + (this.facingBlue ? 0 : 180))
+        //     ),
+        //     ShootingFunctions.CALCULATE_YAW_TOLERANCE.apply(distance),
+        //     Math.abs(PivotSubsystem.getInstance().getPosition() - adjustedPitch),
+        //     ShootingFunctions.CALCULATE_PITCH_TOLERANCE.apply(distance),
+        //     Math.abs(ShooterSubsystem.getInstance().getVelocity() - this.idealShotVector.getNormRps()),
+        //     ShooterSubsystem.metersPerSecondToRotationsPerSecond(
+        //         ShootingFunctions.CALCULATE_SPEED_TOLERANCE.apply(distance, this.idealShotVector.getPitch())
+        //     )
+        // );
+
         if (
-            Math.min(Math.abs(this.idealShotVector.getYaw() - botHeading), 360 - Math.abs(this.idealShotVector.getYaw() - botHeading))
+            Math.min(
+                Math.abs(this.idealShotVector.getYaw() - botHeading + (this.facingBlue ? 0 : 180)),
+                360 - Math.abs(this.idealShotVector.getYaw() - botHeading + (this.facingBlue ? 0 : 180))
+            )
                 <= ShootingFunctions.CALCULATE_YAW_TOLERANCE.apply(distance)
             && Math.abs(PivotSubsystem.getInstance().getPosition() - adjustedPitch)
                 <= ShootingFunctions.CALCULATE_PITCH_TOLERANCE.apply(distance)
@@ -147,7 +171,8 @@ public class AutoShootCommand extends Command {
                     ShootingFunctions.CALCULATE_SPEED_TOLERANCE.apply(distance, this.idealShotVector.getPitch())
                 )
         ) {
-            IntakeSubsystem.getInstance().motionMagicVelocity(IntakeConstants.IDEAL_INTAKE_VELOCITY);
+            // IntakeSubsystem.getInstance().motionMagicVelocity(IntakeConstants.IDEAL_INTAKE_VELOCITY / 2);
+            IntakeSubsystem.getInstance().setVoltage(IntakeConstants.IDEAL_INTAKE_VOLTAGE / 2);
         }
 
         if (!IntakeSubsystem.getInstance().frontLaserHasNote()) {
@@ -179,22 +204,23 @@ public class AutoShootCommand extends Command {
         Translation2d botTranslation = botState.Pose.getTranslation();
         double distance = botTranslation.getDistance(this.speakerTranslation3d.toTranslation2d());
 
+        double yaw = Units.radiansToDegrees(Math.atan2(
+            this.speakerTranslation3d.getY() - botTranslation.getY(),
+            this.speakerTranslation3d.getX() - botTranslation.getX()
+        ) + (this.facingBlue ? Math.PI : 0));
+
         if (this.checkDistance && distance > ShootingConstants.MAX_SHOOTING_DISTANCE) {
             System.err.println(String.format(
                 "AutoShootCommand | Too far from SPEAKER. (%.2f > %.2f)",
                 distance, ShootingConstants.MAX_SHOOTING_DISTANCE
             ));
             this.withinDistance = false;
-            return new ShotVector();
+            return ShotVector.fromYawPitchVelocity(yaw, 1, 1);
         }
         else {
             this.withinDistance = true;
         }
 
-        double yaw = Units.radiansToDegrees(Math.atan2(
-            this.speakerTranslation3d.getY() - botTranslation.getY(),
-            this.speakerTranslation3d.getX() - botTranslation.getX()
-        ) + Math.PI);
         double velocity = ShooterSubsystem.rotationsPerSecondToMetersPerSecond(
             ShootingFunctions.CALCULATE_SHOOTER_VELOCITY.apply(distance)
         );
@@ -220,7 +246,7 @@ public class AutoShootCommand extends Command {
                 .withVelocityY(0)
                 .withTargetDirection(targetRotation);
         }
-
+        
         double velocityX = this.xSupplier.get() * this.maxSpeed;
         double velocityY = this.ySupplier.get() * this.maxSpeed;
         

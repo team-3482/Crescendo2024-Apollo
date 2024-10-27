@@ -8,6 +8,7 @@ import edu.wpi.first.wpilibj2.command.button.CommandXboxController;
 import frc.robot.RobotContainer;
 import frc.robot.auto.AutoShootCommand;
 import frc.robot.auto.DriveToNoteCommand;
+import frc.robot.auto.PassCommand;
 import frc.robot.constants.Constants.ShootingConstants;
 import frc.robot.constants.PhysicalConstants.IntakeConstants;
 import frc.robot.constants.PhysicalConstants.PivotConstants;
@@ -134,6 +135,28 @@ public final class CommandGenerators {
         );
     }
 
+    /**
+     * A command that allows you to move and rotate while passing a note.
+     * @return The command.
+     */
+    public static Command ManuallyPassNoteCommand() {
+        CommandXboxController driverController = RobotContainer.getInstance().getDriverController();
+        return new PassCommand(
+            () -> -driverController.getLeftY(),
+            () -> -driverController.getLeftX(),
+            () -> -driverController.getRightX(),
+            false
+        );
+    }
+
+    /**
+     * A command that automatically passes a note.
+     * @return The command.
+     */
+    public static Command AutoPassNoteCommand() {
+        return new PassCommand(null, null, null, true);
+    }
+
     // OPERATOR
     //
     //
@@ -155,7 +178,8 @@ public final class CommandGenerators {
      */
     public static Command ManualIntakeCommand() {
         return IntakeSubsystem.getInstance().runEnd(
-            () -> IntakeSubsystem.getInstance().motionMagicVelocity(IntakeConstants.IDEAL_INTAKE_VELOCITY),
+            // () -> IntakeSubsystem.getInstance().motionMagicVelocity(IntakeConstants.IDEAL_INTAKE_VELOCITY),
+            () -> IntakeSubsystem.getInstance().setVoltage(IntakeConstants.IDEAL_INTAKE_VOLTAGE),
             () -> IntakeSubsystem.getInstance().setSpeed(0)
         );
     }
@@ -168,7 +192,8 @@ public final class CommandGenerators {
         return Commands.runEnd(
             () -> {
                 ShooterSubsystem.getInstance().motionMagicVelocity(-ShootingConstants.MIN_POSITION_VELOCITY[1]);
-                IntakeSubsystem.getInstance().motionMagicVelocity(IntakeConstants.IDEAL_EJECT_VELOCITY);
+                // IntakeSubsystem.getInstance().motionMagicVelocity(IntakeConstants.IDEAL_EJECT_VELOCITY);
+                IntakeSubsystem.getInstance().setVoltage(IntakeConstants.IDEAL_EJECT_VOLTAGE);
             },
             () -> {
                 ShooterSubsystem.getInstance().setSpeed(0);
@@ -185,7 +210,7 @@ public final class CommandGenerators {
     public static Command ShootSpeakerUpCloseCommand() {
         return Commands.sequence(
             new PivotCommand(ShootingConstants.PIVOT_POSITION_SPEAKER),
-            new ShootCommand(ShootingConstants.MIN_POSITION_VELOCITY[1], 0.3)
+            new ShootCommand(ShootingConstants.SHOOTER_SPEED_SPEAKER, 0.3)
         );
     }
 

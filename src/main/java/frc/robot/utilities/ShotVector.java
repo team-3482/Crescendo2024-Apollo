@@ -88,8 +88,7 @@ public class ShotVector {
      */
     public double getAdjustedPitch(double distance) {
         final double GRAVITY = 9.81;
-        final double b = 0.0085; // Guessed value
-
+        final double b = 0.009; // Guessed value
         double newPitch = this.pitch + b * Math.pow(this.norm, 2) / GRAVITY * distance;
         return newPitch;
     }

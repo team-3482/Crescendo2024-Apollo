@@ -4,6 +4,7 @@
 
 package frc.robot.intake;
 
+import java.util.NoSuchElementException;
 import java.util.function.Supplier;
 
 import com.ctre.phoenix6.mechanisms.swerve.SwerveModule.DriveRequestType;
@@ -12,6 +13,8 @@ import com.ctre.phoenix6.mechanisms.swerve.SwerveRequest;
 import edu.wpi.first.math.geometry.Pose2d;
 import edu.wpi.first.math.geometry.Rotation2d;
 import edu.wpi.first.math.geometry.Translation2d;
+import edu.wpi.first.wpilibj.DriverStation;
+import edu.wpi.first.wpilibj.DriverStation.Alliance;
 import edu.wpi.first.wpilibj2.command.Command;
 import frc.robot.constants.Constants.ControllerConstants;
 import frc.robot.constants.LimelightConstants.DetectionConstants;
@@ -37,6 +40,8 @@ public class IntakeNoteCommand extends Command {
     private Command intakeCommand;
     private boolean executeIntakeCommand;
     Pose2d lastNotePose;
+    private boolean facingBlue;
+    private boolean noAlliance;
 
     /**
      * Creates a new IntakeNoteCommand.
@@ -75,11 +80,23 @@ public class IntakeNoteCommand extends Command {
     public void initialize() {
         this.lastNotePose = null;
         this.executeIntakeCommand = false;
+        this.noAlliance = false;
+
+        try {
+            this.facingBlue = DriverStation.getAlliance().get() == Alliance.Blue;
+        }
+        catch (NoSuchElementException e) {
+            System.err.println("Alliance is empty ; cannot target NOTE to set rotation addition.");
+            this.noAlliance = true;
+            return;
+        }
     }
 
     // Called every time the scheduler runs while the command is scheduled.
     @Override
     public void execute() {
+        if (this.noAlliance) return;
+
         boolean topSpeed = this.uncappedSpeedSupplier.get();
         boolean fineControl = this.fineControlSupplier.get();
 
@@ -151,7 +168,7 @@ public class IntakeNoteCommand extends Command {
             Rotation2d targetRotation = new Rotation2d(Math.atan2(
                 this.lastNotePose.getY() - botTranslation.getY(),
                 this.lastNotePose.getX() - botTranslation.getX()
-            ));
+            ) + (this.facingBlue ? 0 : Math.PI));
 
             CommandSwerveDrivetrain.getInstance().setControl(
                 fieldCentricFacingAngle_withDeadband
@@ -175,6 +192,6 @@ public class IntakeNoteCommand extends Command {
     // Returns true when the command should end.
     @Override
     public boolean isFinished() {
-        return this.intakeCommand.isFinished();
+        return this.noAlliance || this.intakeCommand.isFinished();
     }
 }

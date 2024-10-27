@@ -6,6 +6,7 @@ package frc.robot.shooter;
 
 import java.util.Map;
 
+import com.ctre.phoenix6.configs.CurrentLimitsConfigs;
 import com.ctre.phoenix6.configs.FeedbackConfigs;
 import com.ctre.phoenix6.configs.MotionMagicConfigs;
 import com.ctre.phoenix6.configs.MotorOutputConfigs;
@@ -80,7 +81,7 @@ public class ShooterSubsystem extends SubsystemBase {
     private ShooterSubsystem() {
         super("ShooterSubsystem");
 
-        configureMotionMagic();
+        configureMotors();
 
         // 20 ms update frequency (1 robot cycle)
         this.topShooterMotor.getVelocity().setUpdateFrequency(50);
@@ -101,7 +102,7 @@ public class ShooterSubsystem extends SubsystemBase {
     /**
      * A helper method that configures MotionMagic on both motors.
      */
-    private void configureMotionMagic() {
+    private void configureMotors() {
         TalonFXConfiguration configuration = new TalonFXConfiguration();
 
         FeedbackConfigs feedbackConfigs = configuration.Feedback;
@@ -128,6 +129,12 @@ public class ShooterSubsystem extends SubsystemBase {
         MotionMagicConfigs motionMagicConfigs = configuration.MotionMagic;
         motionMagicConfigs.MotionMagicCruiseVelocity = ShooterConstants.CRUISE_SPEED;
         motionMagicConfigs.MotionMagicAcceleration = ShooterConstants.ACCELERATION;
+        
+        CurrentLimitsConfigs currentLimitsConfigs = configuration.CurrentLimits;
+        currentLimitsConfigs.SupplyCurrentLimitEnable = true;
+        currentLimitsConfigs.SupplyCurrentLimit = 60;
+        currentLimitsConfigs.SupplyCurrentThreshold = 60;
+        currentLimitsConfigs.SupplyTimeThreshold = 0;
 
         // Motor-specific configurations.
         motorOutputConfigs.Inverted = InvertedValue.CounterClockwise_Positive;

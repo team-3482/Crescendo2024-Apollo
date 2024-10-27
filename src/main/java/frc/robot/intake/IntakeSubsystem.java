@@ -6,6 +6,7 @@ package frc.robot.intake;
 
 import java.util.Map;
 
+import com.ctre.phoenix6.configs.CurrentLimitsConfigs;
 import com.ctre.phoenix6.configs.FeedbackConfigs;
 import com.ctre.phoenix6.configs.MotionMagicConfigs;
 import com.ctre.phoenix6.configs.MotorOutputConfigs;
@@ -64,7 +65,7 @@ public class IntakeSubsystem extends SubsystemBase {
 
     private final ShuffleboardLayout shuffleboardLayout = Shuffleboard.getTab(ShuffleboardTabNames.DEFAULT)
         .getLayout("IntakeSubsystem", BuiltInLayouts.kGrid)
-        .withProperties(Map.of("Number of columns", 1, "Number of rows", 1, "Label position", "TOP"))
+        .withProperties(Map.of("Number of columns", 1, "Number of rows", 3, "Label position", "TOP"))
         .withSize(2, 4)
         .withPosition(16, 4);
     private GenericEntry shuffleboardVelocityBar = shuffleboardLayout
@@ -93,7 +94,7 @@ public class IntakeSubsystem extends SubsystemBase {
     private IntakeSubsystem() {
         super("IntakeSubsystem");
 
-        configureMotionMagic();
+        configureMotors();
 
         // 20 ms update frequency (1 robot cycle)
         this.rightIntakeMotor.getVelocity().setUpdateFrequency(50);
@@ -125,7 +126,7 @@ public class IntakeSubsystem extends SubsystemBase {
     /**
      * A helper method that configures MotionMagic on both motors.
      */
-    private void configureMotionMagic() {
+    private void configureMotors() {
         TalonFXConfiguration configuration = new TalonFXConfiguration();
 
         FeedbackConfigs feedbackConfigs = configuration.Feedback;
@@ -153,6 +154,12 @@ public class IntakeSubsystem extends SubsystemBase {
         motionMagicConfigs.MotionMagicCruiseVelocity = IntakeConstants.CRUISE_SPEED;
         motionMagicConfigs.MotionMagicAcceleration = IntakeConstants.ACCELERATION;
 
+        CurrentLimitsConfigs currentLimitsConfigs = configuration.CurrentLimits;
+        currentLimitsConfigs.SupplyCurrentLimitEnable = true;
+        currentLimitsConfigs.SupplyCurrentLimit = 40;
+        currentLimitsConfigs.SupplyCurrentThreshold = 50;
+        currentLimitsConfigs.SupplyTimeThreshold = 0.1;
+
         // Motor-specific configurations.
         motorOutputConfigs.Inverted = InvertedValue.CounterClockwise_Positive; // Bottom motor inverted.
         this.rightIntakeMotor.getConfigurator().apply(configuration);
@@ -166,7 +173,9 @@ public class IntakeSubsystem extends SubsystemBase {
      * @param velocity - In rotations/sec.
      * @apiNote This value is clamped by {@link IntakeConstants#CRUISE_SPEED}.
      * That is the maximum speed of the subsystem.
+     * @deprecated Use {@link IntakeSubsystem#setVoltage(double)} instead.
      */
+    @Deprecated
     public void motionMagicVelocity(double velocity) {
         velocity = MathUtil.clamp(velocity, -IntakeConstants.CRUISE_SPEED, IntakeConstants.CRUISE_SPEED);
         
@@ -175,6 +184,15 @@ public class IntakeSubsystem extends SubsystemBase {
             .withVelocity(velocity);
         
         this.rightIntakeMotor.setControl(control);
+    }
+
+    /**
+     * Sets the voltage of the intake motors.
+     * @param voltage - Between -12.0 and 12.0.
+     */
+    public void setVoltage(double voltage) {
+        voltage = MathUtil.clamp(voltage, -12, 12);
+        this.rightIntakeMotor.setVoltage(voltage);
     }
 
     /**
