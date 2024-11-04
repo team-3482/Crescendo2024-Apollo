@@ -41,13 +41,9 @@ public final class Positions {
     );
 
     /** AMP positions to line up to */
-    private static final Map<DriverStation.Alliance, Pose2d> AMP_TARGET = Map.ofEntries(
-        Map.entry(DriverStation.Alliance.Blue,
-            new Pose2d(new Translation2d(1.8, 7.66), Rotation2d.fromDegrees(90))
-        ),
-        Map.entry(DriverStation.Alliance.Red,
-            new Pose2d(new Translation2d(14.7, 7.66), Rotation2d.fromDegrees(-90))
-        )
+    private static final Map<DriverStation.Alliance, Translation2d> PASS_TARGET = Map.ofEntries(
+        Map.entry(DriverStation.Alliance.Blue, new Translation2d(1.9, 6.6)),
+        Map.entry(DriverStation.Alliance.Red, new Translation2d(14.7, 6.6))
     );
 
     /** Initial bot positions used for initializing odometry, blue-alliance relative. */
@@ -95,15 +91,15 @@ public final class Positions {
     }
     
     /**
-     * Gets the AMP target position for the current alliance.
+     * Gets the PASS target position for the current alliance.
      * @throws RuntimeException if the alliance is empty.
-     * @return a Pose2d to drive to.
+     * @return a Translation2d to aim for.
      */
-    public static Pose2d getAmpTarget() throws RuntimeException {
+    public static Translation2d getPassTarget() throws RuntimeException {
         Optional<DriverStation.Alliance> alliance = DriverStation.getAlliance();
         if (alliance.isEmpty()) {
-            throw new RuntimeException("AMP Target : Alliance is empty ; cannot target AMP.");
+            throw new RuntimeException("PASS Target : Alliance is empty ; cannot target PASS.");
         }
-        return Positions.AMP_TARGET.get(alliance.get());
+        return Positions.PASS_TARGET.get(alliance.get());
     }
 }

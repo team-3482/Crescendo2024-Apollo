@@ -59,9 +59,14 @@ public class VisionData {
      * @return Whether position data can be trusted.
      */
     private boolean canTrustPosition() {
+        ChassisSpeeds robotChassisSpeeds = CommandSwerveDrivetrain.getInstance().getCurrentRobotChassisSpeeds();
+        double velocity = Math.sqrt(Math.pow(robotChassisSpeeds.vxMetersPerSecond, 2) + Math.pow(robotChassisSpeeds.vyMetersPerSecond, 2));
         return this.MegaTag2 != null
-            // && this.MegaTag2.tagCount > 0
+            && this.MegaTag2.tagCount > 0
             && this.MegaTag2.avgTagDist < VisionConstants.TRUST_TAG_DISTANCE
-            && CommandSwerveDrivetrain.getInstance().getState().Pose.getTranslation().getDistance(this.MegaTag2.pose.getTranslation()) <= 1.5;
+            // && CommandSwerveDrivetrain.getInstance().getState().Pose.getTranslation()
+                // .getDistance(this.MegaTag2.pose.getTranslation()) <= 1.5
+            && Units.radiansToDegrees(robotChassisSpeeds.omegaRadiansPerSecond) <= 160
+            && velocity <= 2;
     }
 }

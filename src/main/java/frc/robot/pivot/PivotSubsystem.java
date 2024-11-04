@@ -6,6 +6,7 @@ package frc.robot.pivot;
 
 import java.util.Map;
 
+import com.ctre.phoenix6.configs.CurrentLimitsConfigs;
 import com.ctre.phoenix6.configs.FeedbackConfigs;
 import com.ctre.phoenix6.configs.MotionMagicConfigs;
 import com.ctre.phoenix6.configs.MotorOutputConfigs;
@@ -82,7 +83,7 @@ public class PivotSubsystem extends SubsystemBase {
     private PivotSubsystem() {
         super("PivotSubsystem");
 
-        configureMotionMagic();
+        configureMotors();
         setPositionHardStop();
 
         // 20 ms update frequency (1 robot cycle)
@@ -117,7 +118,7 @@ public class PivotSubsystem extends SubsystemBase {
     /**
      * A helper method that configures MotionMagic on both motors.
      */
-    private void configureMotionMagic() {
+    private void configureMotors() {
         TalonFXConfiguration configuration = new TalonFXConfiguration();
 
         FeedbackConfigs feedbackConfigs = configuration.Feedback;
@@ -145,6 +146,12 @@ public class PivotSubsystem extends SubsystemBase {
         motionMagicConfigs.MotionMagicCruiseVelocity = PivotConstants.CRUISE_SPEED;
         motionMagicConfigs.MotionMagicAcceleration = PivotConstants.ACCELERATION;
         // motionMagicConfigs.MotionMagicJerk = PivotConstants.MOTION_MAGIC_JERK;
+
+        CurrentLimitsConfigs currentLimitsConfigs = configuration.CurrentLimits;
+        currentLimitsConfigs.SupplyCurrentLimitEnable = true;
+        currentLimitsConfigs.SupplyCurrentLimit = 6.5;
+        currentLimitsConfigs.SupplyCurrentThreshold = 10;
+        currentLimitsConfigs.SupplyTimeThreshold = 0.1;
 
         // Motor-specific configurations.
         motorOutputConfigs.Inverted = InvertedValue.Clockwise_Positive; // Right motor not inverted.

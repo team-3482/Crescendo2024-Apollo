@@ -45,14 +45,24 @@ public final class Constants {
     /** Constants used for shooting commands. */
     public static final class ShootingConstants {
         /** The position of the pivot in degrees to shoot into the speaker from right in front of it. */
-        public static final double PIVOT_POSITION_SPEAKER = 55;
+        public static final double PIVOT_POSITION_SPEAKER = 57.5;
+        /** The speed of the shooter in rot/s to shoot into the SPEAKER from right in front of it. */
+        public static final double SHOOTER_SPEED_SPEAKER = 150;
+        
         /** The position of the pivot in degrees to shoot into the AMP from right in front of it. */
         public static final double PIVOT_POSITION_AMP = 100;
         /** The speed of the shooter in rot/s to shoot into the AMP from right in front of it. */
-        public static final double SHOOTER_SPEED_AMP = 45;
+        public static final double SHOOTER_SPEED_AMP = 30;
+        
+        /** The position of the pivot in degrees to pass a note. */
+        public static final double PIVOT_POSITION_PASS = 55;
+        /** The tolerance for the heading when passing a note in degrees. */
+        public static final double YAW_TOLERANCE_PASS = 2.5;
+        /** The speed of the shooter in rot/s to pass a note. */
+        public static final double SHOOTER_SPEED_PASS = 180;
 
         /** Maximum reasonable accurate distance for AutoShooting in meters. */
-        public static final double MAX_SHOOTING_DISTANCE = 3.25;
+        public static final double MAX_SHOOTING_DISTANCE = 3.75;
         /** Maximum reasonable speed with which the robot can still shoot in m/s. */
         public static final double MAX_MOVEMENT_SPEED = 0.75;
 

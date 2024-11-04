@@ -42,10 +42,12 @@ public class TunerConstants {
     // Theoretical free speed (m/s) at 12v applied output;
     // This needs to be tuned to your individual robot
     public static final double kSpeedAt12VoltsMps = 4.8;
+    public static final double reasonableMaxSpeed = 3;
     // Theoretical free speed (rad/s) at 12v applied output;
     // This variable is NOT part of Phoenix swerve code - Alexis
     // It's atually 14 rad/s but that's too fast
     public static final double kAngularSpeedMaxRadps = 2 * Math.PI;
+    public static final double reasonableMaxAngularRate = 1.5 * Math.PI;
 
     // Every 1 rotation of the azimuth results in kCoupleRatio drive motor turns;
     // This may need to be tuned to your individual robot

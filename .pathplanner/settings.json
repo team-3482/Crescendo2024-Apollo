@@ -1,8 +1,13 @@
 {
-  "robotWidth": 0.71,
-  "robotLength": 0.71,
+  "robotWidth": 0.89,
+  "robotLength": 0.89,
   "holonomicMode": true,
-  "pathFolders": [],
+  "pathFolders": [
+    "3 Notes StageToTop",
+    "3 Notes TopToStage",
+    "Bottom ScoreMiddle",
+    "Bottom Passing"
+  ],
   "autoFolders": [],
   "defaultMaxVel": 4.3,
   "defaultMaxAccel": 2.0,

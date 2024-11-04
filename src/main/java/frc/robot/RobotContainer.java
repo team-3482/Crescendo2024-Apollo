@@ -11,16 +11,12 @@ import com.ctre.phoenix6.mechanisms.swerve.SwerveRequest;
 import com.pathplanner.lib.auto.AutoBuilder;
 import com.pathplanner.lib.auto.NamedCommands;
 
-import edu.wpi.first.math.geometry.Pose2d;
-import edu.wpi.first.math.geometry.Rotation2d;
-import edu.wpi.first.math.geometry.Translation2d;
 import edu.wpi.first.wpilibj.shuffleboard.BuiltInLayouts;
 import edu.wpi.first.wpilibj.shuffleboard.BuiltInWidgets;
 import edu.wpi.first.wpilibj.shuffleboard.Shuffleboard;
 import edu.wpi.first.wpilibj.shuffleboard.ShuffleboardLayout;
 import edu.wpi.first.wpilibj.smartdashboard.SendableChooser;
 import edu.wpi.first.wpilibj2.command.Command;
-import edu.wpi.first.wpilibj2.command.CommandScheduler;
 import edu.wpi.first.wpilibj2.command.Commands;
 import edu.wpi.first.wpilibj2.command.button.CommandXboxController;
 import edu.wpi.first.wpilibj2.command.button.Trigger;
@@ -37,7 +33,6 @@ import frc.robot.swerve.Telemetry;
 import frc.robot.swerve.TunerConstants;
 import frc.robot.constants.Constants.ControllerConstants;
 import frc.robot.constants.Constants.ShuffleboardTabNames;
-import frc.robot.constants.LimelightConstants.DetectionConstants;
 import frc.robot.constants.Positions;
 import frc.robot.utilities.CommandGenerators;
 
@@ -85,9 +80,6 @@ public class RobotContainer {
         // Register named commands for Pathplanner (always do this after subsystem initialization)
         registerNamedCommands();
 
-        configureDriverBindings();
-        configureOperatorBindings();
-
         this.autoChooser = AutoBuilder.buildAutoChooser(); // Default auto will be Commands.none()
         Shuffleboard.getTab(ShuffleboardTabNames.DEFAULT)
             .add("Auto Chooser", autoChooser)
@@ -104,8 +96,8 @@ public class RobotContainer {
         final CommandSwerveDrivetrain drivetrain = CommandSwerveDrivetrain.getInstance();
         final double MaxSpeed = TunerConstants.kSpeedAt12VoltsMps;
         final double MaxAngularRate = TunerConstants.kAngularSpeedMaxRadps;
-        final double reasonableMaxSpeed = MaxSpeed * 0.5;
-        final double reasonableMaxAngularRate = MaxAngularRate * 0.5;
+        final double reasonableMaxSpeed = TunerConstants.reasonableMaxSpeed;
+        final double reasonableMaxAngularRate = TunerConstants.reasonableMaxAngularRate;
 
         final SwerveRequest.FieldCentric fieldCentricDrive_withDeadband = new SwerveRequest.FieldCentric()
             .withDeadband(reasonableMaxSpeed * ControllerConstants.DEADBAND)
@@ -144,80 +136,6 @@ public class RobotContainer {
                     );
             }).ignoringDisable(true)
         );
-
-        // Toggle intake mode
-        // Faces closest note in vision and enables intake within 2 meters,
-        // or drives normally with intake enabled when no notes are found.
-        final SwerveRequest.FieldCentricFacingAngle fieldCentricFacingAngle_withDeadband = new CommandSwerveDrivetrain.FieldCentricFacingAngle_PID_Workaround()
-            .withDeadband(reasonableMaxSpeed * ControllerConstants.DEADBAND)
-            .withDriveRequestType(DriveRequestType.OpenLoopVoltage);
-        Command intakeCommand = CommandGenerators.IntakeCommand();
-        
-        // TODO ? Separate Command that will store Note position and work similarly to AutoShootCommand() and DriveToNoteCommand ?
-        this.driverController.leftBumper()
-            .whileTrue(drivetrain.applyRequest(() -> {
-                boolean topSpeed = leftTrigger.getAsBoolean();
-                boolean fineControl = rightTrigger.getAsBoolean();
-
-                double velocityX = -driverController.getLeftY()
-                    * (topSpeed ? MaxSpeed : reasonableMaxSpeed)
-                    * (fineControl ? ControllerConstants.FINE_CONTROL_MULT : 1);
-                double velocityY = -driverController.getLeftX()
-                    * (topSpeed ? MaxSpeed : reasonableMaxSpeed)
-                    * (fineControl ? ControllerConstants.FINE_CONTROL_MULT : 1);
-
-                Pose2d[] notePoses = DetectionSubsystem.getInstance().getRecentNotePoses();
-                Translation2d botTranslation = drivetrain.getState().Pose.getTranslation();
-
-                if (IntakeSubsystem.getInstance().backLaserHasNote() && !IntakeSubsystem.getInstance().frontLaserHasNote()) {
-                    intakeCommand.schedule();
-                }
-                
-                // If no Notes OR Note further than {@link DetectionConstants#MAX_NOTE_DISTANCE_DRIVING} meters, drive normally.
-                if (notePoses.length == 0
-                    || notePoses[0].getTranslation().getDistance(botTranslation)
-                        >= DetectionConstants.MAX_NOTE_DISTANCE_DRIVING
-                    || drivetrain.getState().Pose.getTranslation().getDistance(notePoses[0].getTranslation())
-                        <= 1
-                ) {
-                    if (!intakeCommand.isScheduled()) {
-                        intakeCommand.schedule();
-                    }
-                    
-                    return fieldCentricDrive_withDeadband
-                        .withVelocityX(velocityX)
-                        .withVelocityY(velocityY)
-                        .withRotationalRate(
-                            -driverController.getRightX()
-                            * (topSpeed ? MaxAngularRate : reasonableMaxAngularRate)
-                            * (fineControl ? ControllerConstants.FINE_CONTROL_MULT : 1)
-                        );
-                }
-                else {
-                    Pose2d notePose = notePoses[0];
-                    
-                    // If within one meter, enable the intake
-                    if (drivetrain.getState().Pose.getTranslation().getDistance(notePose.getTranslation())
-                                <= 1
-                            && !intakeCommand.isScheduled()
-                    ) {
-                        intakeCommand.schedule();
-                    }
-
-                    Rotation2d targetRotation = new Rotation2d(Math.atan2(
-                        notePose.getY() - botTranslation.getY(),
-                        notePose.getX() - botTranslation.getX()
-                    ));
-
-                    return fieldCentricFacingAngle_withDeadband
-                        .withVelocityX(velocityX)
-                        .withVelocityY(velocityY)
-                        .withTargetDirection(targetRotation);
-                }
-            }))
-            .onFalse(Commands.runOnce(
-                () -> CommandScheduler.getInstance().cancel(intakeCommand)
-            ));
 
         // Useful for testing
         // final SwerveRequest.SwerveDriveBrake brake = new SwerveRequest.SwerveDriveBrake();
@@ -307,16 +225,25 @@ public class RobotContainer {
         IntakeSubsystem.getInstance();
         PivotSubsystem.getInstance();
         ShooterSubsystem.getInstance();
+
+        IntakeSubsystem.getInstance().setDefaultCommand(
+            IntakeSubsystem.getInstance().runOnce(
+                () -> IntakeSubsystem.getInstance().setSpeed(0)
+            )
+        );
     }
 
     /** Register all NamedCommands for PathPlanner use */
     private void registerNamedCommands() {
         NamedCommands.registerCommand("AutonIntakeNote", CommandGenerators.AutonIntakeNoteCommand());
-        NamedCommands.registerCommand("AutoShootNoteStaticCommand", CommandGenerators.AutoShootNoteStaticCommand());
+        NamedCommands.registerCommand("AutoShootNoteStaticAnyDistance", CommandGenerators.AutoShootNoteStaticAnyDistanceCommand());
+        NamedCommands.registerCommand("ShootSpeakerUpClose", CommandGenerators.ShootSpeakerUpCloseCommand());
+        NamedCommands.registerCommand("Intake", CommandGenerators.IntakeCommand());
+        NamedCommands.registerCommand("AutoPassNote", CommandGenerators.AutoPassNoteCommand());
     }
 
     /** Configures the button bindings of the driver controller. */
-    private void configureDriverBindings() {
+    public void configureDriverBindings() {
         this.driverController.b().onTrue(CommandGenerators.CancelAllCommands());
 
         /*
@@ -342,12 +269,14 @@ public class RobotContainer {
          *                           within 2 meters of the nearest one.
          *                           Freely rotate within 1 meter.
          */
+        this.driverController.leftBumper()
+            .whileTrue(CommandGenerators.CenterAndIntakeNoteCommand());
         this.driverController.rightBumper()
-            .whileTrue(CommandGenerators.AutoShootNoteMovementCommand())
+            .whileTrue(CommandGenerators.AutoShootNoteStaticCheckDistanceCommand())
             .onFalse(CommandGenerators.PivotToIdlePositionCommand());
         
         this.driverController.y()
-            .whileTrue(CommandGenerators.AutoShootNoteStaticCommand())
+            .whileTrue(CommandGenerators.AutoShootNoteMovementCommand())
             .onFalse(CommandGenerators.PivotToIdlePositionCommand());
         // Drive to a note and intake
         this.driverController.x().onTrue(CommandGenerators.AutonIntakeNoteCommand());
@@ -356,35 +285,43 @@ public class RobotContainer {
     }
 
     /** Configures the button bindings of the operator controller. */
-    private void configureOperatorBindings() {
-        operatorController.b().onTrue(CommandGenerators.CancelAllCommands());
+    public void configureOperatorBindings() {
+        this.operatorController.b().onTrue(CommandGenerators.CancelAllCommands());
 
         PivotSubsystem.getInstance().setDefaultCommand(new ManuallyPivotCommand(
             () -> operatorController.getRightTriggerAxis(),
             () -> operatorController.getLeftTriggerAxis(),
             false
         ));
-        operatorController.a().onTrue(new ResetAtHardstopCommand(false).withTimeout(5));
+        this.operatorController.a().onTrue(new ResetAtHardstopCommand(false).withTimeout(5));
 
-        operatorController.pov(0)
+        this.operatorController.pov(0)
             .whileTrue(PivotSubsystem.getInstance().run(
                 () -> PivotSubsystem.getInstance().motionMagicPosition(90)
             ));
-        operatorController.pov(180)
+            this.operatorController.pov(180)
             .whileTrue(PivotSubsystem.getInstance().run(
                 () -> PivotSubsystem.getInstance().motionMagicPosition(5)
             ));
 
         // Testing shooting
-        operatorController.pov(90).whileTrue(CommandGenerators.ManualIntakeCommand());
-        operatorController.pov(270).whileTrue(CommandGenerators.ManuallyReverseIntakeCommand());
+        this.operatorController.pov(90).whileTrue(CommandGenerators.ManualIntakeCommand());
+        this.operatorController.pov(270).whileTrue(CommandGenerators.ManuallyReverseIntakeCommand());
         
-        operatorController.rightBumper()
+        this.operatorController.rightBumper()
             .whileTrue(CommandGenerators.ShootSpeakerUpCloseCommand())
             .onFalse(CommandGenerators.PivotToIdlePositionCommand());
         
-        operatorController.leftBumper()
+        this.operatorController.leftBumper()
             .whileTrue(CommandGenerators.ShootAmpUpCloseCommand())
+            .onFalse(CommandGenerators.PivotToIdlePositionCommand());
+            
+        this.operatorController.x()
+            .whileTrue(CommandGenerators.AutoPassNoteCommand())
+            .onFalse(CommandGenerators.PivotToIdlePositionCommand());
+        
+        this.operatorController.y()
+            .whileTrue(CommandGenerators.ManuallyPassNoteCommand())
             .onFalse(CommandGenerators.PivotToIdlePositionCommand());
     }
 

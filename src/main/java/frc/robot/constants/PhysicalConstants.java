@@ -33,6 +33,14 @@ public final class PhysicalConstants {
         /** The velocity with which to eject in rot/s. */
         public static final double IDEAL_EJECT_VELOCITY = -5;
 
+        /** The voltage with which to intake in volts. */
+        public static final double IDEAL_INTAKE_VOLTAGE = 10;
+        /** The voltage with which to intake past the back laser in volts. */
+        public static final double SLOW_INTAKE_VOLTAGE = 5;
+        /** The voltage with which eject in volts. */
+        public static final double IDEAL_EJECT_VOLTAGE = -5;
+
+
         /** This is the gear ratio from the sensor to the rollers. */
         public static final double ROTOR_TO_MECHANISM_RATIO = 4; // 4:1 gearbox
 
@@ -92,7 +100,7 @@ public final class PhysicalConstants {
          * This value is not used for MotionMagicVelocity.
          * It is only here as a reminder.
          */
-        public static final double CRUISE_SPEED = 240;
+        public static final double CRUISE_SPEED = 240; 
         /** Max mechanism rotations per second^2 */
         public static final double ACCELERATION = 800;
     }
@@ -108,9 +116,6 @@ public final class PhysicalConstants {
         public static final double ABOVE_LIMELIGHT_ANGLE = 16;
         /** Lower soft stop angle in degrees. */
         public static final double LOWER_HARD_STOP = 2.796678; // Hard stop
-
-        /** Height of the center of rotation relative to the ground. */
-        public static final double PIVOT_HEIGHT = Units.inchesToMeters(6);
         
         /** This is the gear ratio from the sensor to the pivot. */
         public static final double ROTOR_TO_MECHANISM_RATIO = 100; // 5:1 -> 2:1 -> 10 : 1 = 100:1

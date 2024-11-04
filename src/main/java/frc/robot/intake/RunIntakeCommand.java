@@ -20,7 +20,8 @@ public class RunIntakeCommand extends Command {
     @Override
     public void initialize() {
         if (!IntakeSubsystem.getInstance().frontLaserHasNote()) {
-            IntakeSubsystem.getInstance().motionMagicVelocity(IntakeConstants.IDEAL_INTAKE_VELOCITY);
+            // IntakeSubsystem.getInstance().motionMagicVelocity(IntakeConstants.IDEAL_INTAKE_VELOCITY);
+            IntakeSubsystem.getInstance().setVoltage(IntakeConstants.IDEAL_INTAKE_VOLTAGE);
         }
     }
 
@@ -28,7 +29,8 @@ public class RunIntakeCommand extends Command {
     @Override
     public void execute() {
         if (IntakeSubsystem.getInstance().backLaserHasNote()) {
-            IntakeSubsystem.getInstance().motionMagicVelocity(IntakeConstants.SLOW_INTAKE_VELOCITY);
+            // IntakeSubsystem.getInstance().motionMagicVelocity(IntakeConstants.SLOW_INTAKE_VELOCITY);
+            IntakeSubsystem.getInstance().setVoltage(IntakeConstants.SLOW_INTAKE_VOLTAGE);
         }
     }
 

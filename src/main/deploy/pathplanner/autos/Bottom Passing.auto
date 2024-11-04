@@ -1,0 +1,49 @@
+{
+  "version": 1.0,
+  "startingPose": null,
+  "command": {
+    "type": "sequential",
+    "data": {
+      "commands": [
+        {
+          "type": "path",
+          "data": {
+            "pathName": "Bottom Passing P1"
+          }
+        },
+        {
+          "type": "named",
+          "data": {
+            "name": "AutoPassNote"
+          }
+        },
+        {
+          "type": "path",
+          "data": {
+            "pathName": "Bottom Passing P2"
+          }
+        },
+        {
+          "type": "named",
+          "data": {
+            "name": "AutoPassNote"
+          }
+        },
+        {
+          "type": "path",
+          "data": {
+            "pathName": "Bottom Passing P3"
+          }
+        },
+        {
+          "type": "named",
+          "data": {
+            "name": "AutoPassNote"
+          }
+        }
+      ]
+    }
+  },
+  "folder": null,
+  "choreoAuto": false
+}

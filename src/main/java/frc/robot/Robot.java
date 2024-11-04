@@ -67,7 +67,9 @@ public class Robot extends LoggedRobot {
         // Logger.start();
 
         // Initialize RobotContainer and all subsystems
-        RobotContainer.getInstance();
+        RobotContainer container = RobotContainer.getInstance();
+        container.configureDriverBindings();
+        container.configureOperatorBindings();
 
         LiveWindow.disableAllTelemetry();
     }

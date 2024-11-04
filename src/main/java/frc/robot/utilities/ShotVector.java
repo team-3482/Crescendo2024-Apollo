@@ -88,8 +88,7 @@ public class ShotVector {
      */
     public double getAdjustedPitch(double distance) {
         final double GRAVITY = 9.81;
-        final double b = 0.0085; // Guessed value
-
+        final double b = 0.009; // Guessed value
         double newPitch = this.pitch + b * Math.pow(this.norm, 2) / GRAVITY * distance;
         return newPitch;
     }
@@ -125,7 +124,7 @@ public class ShotVector {
 
     /**
      * Returns the difference between two ShotVectors using the formula {@code x1 - x2, y1 - y2, z1 - z3}.
-     * @param other - The ShotVector to substract.
+     * @param other - The ShotVector to subtract.
      * @return The difference between the two ShotVectors.
      */
     public ShotVector minus(ShotVector other) {
