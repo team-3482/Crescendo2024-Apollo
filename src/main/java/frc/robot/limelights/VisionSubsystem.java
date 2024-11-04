@@ -58,6 +58,7 @@ public class VisionSubsystem extends SubsystemBase {
     private volatile long lastHeartbeatFrontLL = 0;
     /** Last heartbeat of the back LL (updated every frame) */
     private volatile long lastHeartbeatBackLL = 0;
+    private volatile Timer lastDataTimer;
 
     // Lists used for tag filtering. Final to reduce wasted processing power.
     private final List<Integer> BLUE_SOURCE = Arrays.asList(1, 2, 3, 4);
@@ -94,6 +95,9 @@ public class VisionSubsystem extends SubsystemBase {
                 .withPosition(6, 0);
         }
 
+        this.lastDataTimer = new Timer();
+        this.lastDataTimer.start();
+
         this.notifier = new Notifier(() -> notifierLoop());
         this.notifier.setName("Vision Notifier");
         // Assuming ~40 fps / 25 ms cycle.
@@ -118,7 +122,11 @@ public class VisionSubsystem extends SubsystemBase {
         for (VisionData data : filteredLimelightDatas) {
             if (data.canTrustRotation) {
                 // Only trust rotational data when adding this pose.
-                CommandSwerveDrivetrain.getInstance().setVisionMeasurementStdDevs(VecBuilder.fill(9999999, 9999999, 1));
+                CommandSwerveDrivetrain.getInstance().setVisionMeasurementStdDevs(VecBuilder.fill(
+                    9999999,
+                    9999999,
+                    recentVisionData() ? 1 : 0.5
+                ));
                 CommandSwerveDrivetrain.getInstance().addVisionMeasurement(
                     data.MegaTag.pose,
                     data.MegaTag.timestampSeconds
@@ -126,8 +134,19 @@ public class VisionSubsystem extends SubsystemBase {
             }
 
             if (data.canTrustPosition) {
+                if (CommandSwerveDrivetrain.getInstance().getState().Pose.getTranslation()
+                        .getDistance(data.MegaTag2.pose.getTranslation())
+                        <= 2
+                ) {
+                    this.lastDataTimer.restart();
+                }
+
                 // Only trust positional data when adding this pose.
-                CommandSwerveDrivetrain.getInstance().setVisionMeasurementStdDevs(VecBuilder.fill(0.7, 0.7, 9999999));
+                CommandSwerveDrivetrain.getInstance().setVisionMeasurementStdDevs(VecBuilder.fill(
+                    recentVisionData() ? 0.7 : 0.1,
+                    recentVisionData() ? 0.7 : 0.1,
+                    9999999
+                ));
                 CommandSwerveDrivetrain.getInstance().addVisionMeasurement(
                     data.MegaTag2.pose,
                     data.MegaTag2.timestampSeconds
@@ -461,5 +480,13 @@ public class VisionSubsystem extends SubsystemBase {
                     CommandSwerveDrivetrain.getInstance().getState().Pose.getRotation()
             );
         }
+    }
+
+    /**
+     * Returns if vision data has been processed in the last {@link VisionConstants#RECENT_DATA_CUTOFF}.
+     * @return If there is recent vision data.
+     */
+    public boolean recentVisionData() {
+        return !this.lastDataTimer.hasElapsed(VisionConstants.RECENT_DATA_CUTOFF);
     }
 }

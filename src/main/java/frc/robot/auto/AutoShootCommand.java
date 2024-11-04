@@ -25,13 +25,14 @@ import frc.robot.constants.Constants.ShootingConstants;
 import frc.robot.constants.Constants.ShootingFunctions;
 import frc.robot.constants.PhysicalConstants.IntakeConstants;
 import frc.robot.intake.IntakeSubsystem;
+import frc.robot.limelights.VisionSubsystem;
 import frc.robot.pivot.PivotSubsystem;
 import frc.robot.shooter.ShooterSubsystem;
 import frc.robot.swerve.CommandSwerveDrivetrain;
 import frc.robot.utilities.ShotVector;
 
 /** Shoots a Note autonomously. */
-public class AutoShootCommand extends Command { // TODO : Delay before shooting
+public class AutoShootCommand extends Command {
     // Driving while shooting
     private final Supplier<Double> xSupplier;
     private final Supplier<Double> ySupplier;
@@ -159,11 +160,11 @@ public class AutoShootCommand extends Command { // TODO : Delay before shooting
         // );
 
         if (
-            Math.min(
+            VisionSubsystem.getInstance().recentVisionData()
+            && Math.min(
                 Math.abs(this.idealShotVector.getYaw() - botHeading + (this.facingBlue ? 0 : 180)),
                 360 - Math.abs(this.idealShotVector.getYaw() - botHeading + (this.facingBlue ? 0 : 180))
-            )
-                <= ShootingFunctions.CALCULATE_YAW_TOLERANCE.apply(distance)
+            ) <= ShootingFunctions.CALCULATE_YAW_TOLERANCE.apply(distance)
             && Math.abs(PivotSubsystem.getInstance().getPosition() - adjustedPitch)
                 <= ShootingFunctions.CALCULATE_PITCH_TOLERANCE.apply(distance)
             && Math.abs(ShooterSubsystem.getInstance().getVelocity() - this.idealShotVector.getNormRps())

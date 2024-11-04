@@ -11,6 +11,7 @@ import edu.wpi.first.math.geometry.Rotation3d;
 import edu.wpi.first.math.geometry.Translation3d;
 import edu.wpi.first.math.util.Units;
 import frc.robot.limelights.DetectionSubsystem;
+import frc.robot.limelights.VisionSubsystem;
 
 /** Constants for Limelight-related code. */
 public final class LimelightConstants {
@@ -36,6 +37,12 @@ public final class LimelightConstants {
         
         /** Crop window size when no tags are in view (used for smart cropping) */
         public static final double DEFAULT_CROP_SIZE = 0.85;
+
+        /**
+         * The time limit for considering data to be recent.
+         * @see {@link VisionSubsystem#recentVisionData()}
+         */
+        public static final double RECENT_DATA_CUTOFF = 3.5;
         
         // See https://docs.limelightvision.io/docs/docs-limelight/hardware-comparison.
         /** Horizontal FOV of LL3G in degrees (used for smart cropping) */

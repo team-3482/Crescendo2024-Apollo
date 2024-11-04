@@ -106,16 +106,26 @@ public class PassCommand extends Command {
         );
         
         PivotSubsystem.getInstance().motionMagicPosition(ShootingConstants.PIVOT_POSITION_PASS);
-        ShooterSubsystem.getInstance().motionMagicVelocity(200);
+        ShooterSubsystem.getInstance().motionMagicVelocity(ShootingConstants.SHOOTER_SPEED_PASS);
+
+        boolean pivotShooterWithinTolerance = ShooterSubsystem.getInstance().withinTolerance(ShootingConstants.SHOOTER_SPEED_PASS)
+            && PivotSubsystem.getInstance().withinTolerance(ShootingConstants.PIVOT_POSITION_PASS);
 
         if (
-            Math.min(
+            this.rotate
+            && Math.min(
                 Math.abs(yaw.getDegrees() - botHeading + (this.facingBlue ? 0 : 180)),
                 360 - Math.abs(yaw.getDegrees() - botHeading + (this.facingBlue ? 0 : 180))
-            ) <= ShootingConstants.TOLERANCE_PASS
+            ) <= ShootingConstants.YAW_TOLERANCE_PASS
+            && pivotShooterWithinTolerance
         ) {
             // IntakeSubsystem.getInstance().motionMagicVelocity(IntakeConstants.IDEAL_INTAKE_VELOCITY);
             IntakeSubsystem.getInstance().setVoltage(IntakeConstants.IDEAL_INTAKE_VOLTAGE);
+        }
+        else if (!this.rotate && pivotShooterWithinTolerance) {
+            // IntakeSubsystem.getInstance().motionMagicVelocity(IntakeConstants.IDEAL_INTAKE_VELOCITY);
+            IntakeSubsystem.getInstance().setVoltage(IntakeConstants.IDEAL_INTAKE_VOLTAGE);
+
         }
 
         if (!IntakeSubsystem.getInstance().frontLaserHasNote()) {

@@ -239,6 +239,7 @@ public class RobotContainer {
         NamedCommands.registerCommand("AutoShootNoteStaticAnyDistance", CommandGenerators.AutoShootNoteStaticAnyDistanceCommand());
         NamedCommands.registerCommand("ShootSpeakerUpClose", CommandGenerators.ShootSpeakerUpCloseCommand());
         NamedCommands.registerCommand("Intake", CommandGenerators.IntakeCommand());
+        NamedCommands.registerCommand("AutoPassNote", CommandGenerators.AutoPassNoteCommand());
     }
 
     /** Configures the button bindings of the driver controller. */
@@ -318,7 +319,7 @@ public class RobotContainer {
         this.operatorController.x()
             .whileTrue(CommandGenerators.AutoPassNoteCommand())
             .onFalse(CommandGenerators.PivotToIdlePositionCommand());
-            
+        
         this.operatorController.y()
             .whileTrue(CommandGenerators.ManuallyPassNoteCommand())
             .onFalse(CommandGenerators.PivotToIdlePositionCommand());

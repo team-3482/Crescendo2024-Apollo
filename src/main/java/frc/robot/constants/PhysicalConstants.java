@@ -36,9 +36,9 @@ public final class PhysicalConstants {
         /** The voltage with which to intake in volts. */
         public static final double IDEAL_INTAKE_VOLTAGE = 10;
         /** The voltage with which to intake past the back laser in volts. */
-        public static final double SLOW_INTAKE_VOLTAGE = 3;
+        public static final double SLOW_INTAKE_VOLTAGE = 5;
         /** The voltage with which eject in volts. */
-        public static final double IDEAL_EJECT_VOLTAGE = -3;
+        public static final double IDEAL_EJECT_VOLTAGE = -5;
 
 
         /** This is the gear ratio from the sensor to the rollers. */

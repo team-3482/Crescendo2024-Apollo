@@ -57,7 +57,9 @@ public final class Constants {
         /** The position of the pivot in degrees to pass a note. */
         public static final double PIVOT_POSITION_PASS = 55;
         /** The tolerance for the heading when passing a note in degrees. */
-        public static final double TOLERANCE_PASS = 2.5;
+        public static final double YAW_TOLERANCE_PASS = 2.5;
+        /** The speed of the shooter in rot/s to pass a note. */
+        public static final double SHOOTER_SPEED_PASS = 180;
 
         /** Maximum reasonable accurate distance for AutoShooting in meters. */
         public static final double MAX_SHOOTING_DISTANCE = 3.75;
