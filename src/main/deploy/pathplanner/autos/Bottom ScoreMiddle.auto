@@ -12,18 +12,6 @@
           }
         },
         {
-          "type": "named",
-          "data": {
-            "name": "AutonIntakeNote"
-          }
-        },
-        {
-          "type": "named",
-          "data": {
-            "name": "AutoShootNoteStaticAnyDistance"
-          }
-        },
-        {
           "type": "race",
           "data": {
             "commands": [
@@ -40,13 +28,13 @@
                     {
                       "type": "path",
                       "data": {
-                        "pathName": "Top 2 Note"
+                        "pathName": "Bottom ScoreMiddle P1"
                       }
                     },
                     {
                       "type": "wait",
                       "data": {
-                        "waitTime": 4.0
+                        "waitTime": 1.5
                       }
                     }
                   ]
@@ -56,9 +44,21 @@
           }
         },
         {
+          "type": "path",
+          "data": {
+            "pathName": "Bottom ScoreMiddle P2"
+          }
+        },
+        {
           "type": "named",
           "data": {
             "name": "AutoShootNoteStaticAnyDistance"
+          }
+        },
+        {
+          "type": "path",
+          "data": {
+            "pathName": "Bottom ScoreMiddle P3"
           }
         }
       ]
