@@ -58,6 +58,11 @@ public class VisionSubsystem extends SubsystemBase {
     private volatile long lastHeartbeatFrontLL = 0;
     /** Last heartbeat of the back LL (updated every frame) */
     private volatile long lastHeartbeatBackLL = 0;
+    /**
+     * Timer used to track when the cameras last got data.
+     * @apiNote It would probably be better to track distance traveled instead,
+     * but this was the quickest solution.
+     */
     private volatile Timer lastDataTimer;
 
     // Lists used for tag filtering. Final to reduce wasted processing power.
